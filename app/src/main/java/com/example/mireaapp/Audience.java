@@ -121,19 +121,23 @@ public class Audience implements Runnable {
 
     public static void downloadOneFile(String urlStr, String fileName, File path) throws IOException {
         URL url = new URL(urlStr);
+
         BufferedInputStream bis = new BufferedInputStream(url.openStream());
         //Context context = getApplicationContext();
         //File path = context.getFilesDir();
         File file = new File(path, fileName);
-        FileOutputStream fis = new FileOutputStream(file);
-        byte[] buffer = new byte[1024];
-        int count = 0;
-        while ((count = bis.read(buffer, 0, 1024)) != -1) {
-            fis.write(buffer, 0, count);
+        if (!file.isFile()) {
+            FileOutputStream fis = new FileOutputStream(file);
+            byte[] buffer = new byte[1024];
+            int count = 0;
+            while ((count = bis.read(buffer, 0, 1024)) != -1) {
+                fis.write(buffer, 0, count);
+            }
+            fis.close();
+            bis.close();
+            Log.i("MIREA_APP_TAG", "Download: " + fileName);
+
         }
-        fis.close();
-        bis.close();
-        Log.i("MIREA_APP_TAG", "Download: " + fileName);
     }
 
     public ArrayList<String> getListOfNamesFromListOfLinks(ArrayList<String> links) {
