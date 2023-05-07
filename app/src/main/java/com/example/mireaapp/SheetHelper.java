@@ -15,7 +15,15 @@ public class SheetHelper {
     }
 
     public String getGroupName() {
-        return this.groupName;
+        return groupName;
     }
 
+    public void setCellNumber(int cellNumber) {
+        this.cellNumber = cellNumber;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
+    }
 }
+
