@@ -1,5 +1,8 @@
 package com.example.mireaapp;
 
+import android.content.ContentValues;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import java.io.FileNotFoundException;
@@ -28,17 +31,20 @@ import java.util.ArrayList;
 
 public class Audience implements Runnable {
 
+    private static String url = "https://www.mirea.ru/schedule/";
     private String name;
-    private String building; //
+    private String building; //Какой корпус
     private String day; //День недели
     private String numOfClass; //Номер пары
     private boolean isFree; //Свободен ли кабинет
     private String group; //Название группы
     private String discipline; //название дисциплины
-    private String teacher;
-    private String typeOfClass;
+    private String teacher; // Преподаватель
+    private String typeOfClass; //Тип пары, лк, пр, лаб
+    private String campus; //Корпус, А,Б,В,Г,Д
     private File path;
 
+    private ArrayList<String> listOfFileNames;
     private int week;
     public Audience() {
     }
@@ -59,6 +65,22 @@ public class Audience implements Runnable {
         this.isFree = isFree;
         this.group = group;
         this.discipline = discipline;
+    }
+
+    public ArrayList<String> getListOfFileNames() {
+        return listOfFileNames;
+    }
+
+    public void setListOfFileNames(ArrayList<String> listOfFileNames) {
+        this.listOfFileNames = listOfFileNames;
+    }
+
+    public String getCampus() {
+        return campus;
+    }
+
+    public void setCampus(String campus) {
+        this.campus = campus;
     }
 
     public Audience(File path) {
@@ -384,6 +406,10 @@ public class Audience implements Runnable {
     }
 
 
+    private static void convertNameStringToManyValues (String value) {
+        String[] values = value.split("[, ]+");
+
+    }
 
     public static void getInfoFromRow(Row row,XSSFSheet sheet, SheetHelper sh, String group, int rowNum, String fileName) {
 
@@ -473,7 +499,7 @@ public class Audience implements Runnable {
             Cell cellTeacher = row.getCell(sh.getCellNumber() + 2);
             switch (cellTeacher.getCellType()) {
                 case Cell.CELL_TYPE_STRING:
-                    String value = cellTeacher.getStringCellValue().replaceAll("( ){10,}", "\n");
+                    String value = cellTeacher.getStringCellValue();
                     String[] teacherValues = value.split("\\v+");
                     for (int i = 0; i < teacherValues.length; i++) {
                         info.get(i).setTeacher(teacherValues[i]);
@@ -578,15 +604,15 @@ public class Audience implements Runnable {
             }
         }
 
-
+        /*
         for (Audience au: info) {
             Log.i("MIREA_APP_TAG"," Неделя " + au.getWeek() + " Day: " + au.getDay() + " Пара: " + au.getNumOfClass() + " Кабинет: " + au.getName()
                     + " Дисциплина: " + au.getDiscipline() + " Группы "+ au.getGroup() + " тип пары" + au.getTypeOfClass()  + " Преподаватель" + au.getTeacher());
         }
-
+        */
         for (Audience au : info) {
             if (au.getNumOfClass()==null || au.getTypeOfClass()==null || au.getDiscipline()==null || au.getName()==null) {
-                //Log.i("MIREA_APP_TAG", "File: " + fileName);
+                Log.i("MIREA_APP_TAG", "File: " + fileName);
                 Log.i("MIREA_APP_TAG"," Неделя " + au.getWeek() + " Day: " + au.getDay() + " Пара: " + au.getNumOfClass() + " Кабинет: " + au.getName()
                         + " Дисциплина: " + au.getDiscipline() + " Группы "+ au.getGroup() + " тип пары" + au.getTypeOfClass()  + " Преподаватель" + au.getTeacher());
             }
@@ -605,13 +631,16 @@ public class Audience implements Runnable {
         }
     }
 
+
+
     @Override
     public void run() {
-        String url = "https://www.mirea.ru/schedule/";
-        Log.i("MIREA_APP_TAG", "This is fine");
+
+
         ArrayList<String> listOfLinksToDownload = getListOfFilesToDownload(url);
         Log.i("MIREA_APP_TAG", String.valueOf(listOfLinksToDownload));
-        ArrayList<String> listOfFileNames = getListOfNamesFromListOfLinks(listOfLinksToDownload);
+        listOfFileNames = getListOfNamesFromListOfLinks(listOfLinksToDownload);
+
         downloadlistOfFiles(listOfLinksToDownload,listOfFileNames,path);
 
         for (String u : listOfFileNames) {
