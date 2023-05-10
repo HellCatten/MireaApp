@@ -622,6 +622,7 @@ public class Audience implements Runnable {
     public void differentialDataBaseCreator(File path, String fileName) {
         if (fileName.contains("ekz")) {
 
+        } else if (fileName.contains("zach")) {
         } else {
             try {
                 dataBaseFileCreator(path, fileName);
@@ -629,6 +630,7 @@ public class Audience implements Runnable {
                 throw new RuntimeException(e);
             }
         }
+
     }
 
 

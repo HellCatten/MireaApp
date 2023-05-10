@@ -6,6 +6,7 @@ import android.content.Context;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Bundle;
@@ -41,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
         Log.i("MIREA_APP_TAG", String.valueOf(path));
         Thread thread = new Thread(au);
         thread.start();
+        startActivity(new Intent(getApplicationContext(), SecondActivity.class));
         //fileDataBaseWorker();
     }
 
