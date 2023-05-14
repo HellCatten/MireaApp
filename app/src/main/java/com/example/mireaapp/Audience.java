@@ -1,8 +1,5 @@
 package com.example.mireaapp;
 
-import android.content.ContentValues;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import java.io.FileNotFoundException;
@@ -33,6 +30,7 @@ public class Audience implements Runnable {
 
     private static String url = "https://www.mirea.ru/schedule/";
     private String name;
+    private String nameOfClass;
     private String building; //Какой корпус
     private String day; //День недели
     private String numOfClass; //Номер пары
@@ -65,6 +63,22 @@ public class Audience implements Runnable {
         this.isFree = isFree;
         this.group = group;
         this.discipline = discipline;
+    }
+
+    public static String getUrl() {
+        return url;
+    }
+
+    public String getNameOfClass() {
+        return nameOfClass;
+    }
+
+    public static void setUrl(String url) {
+        Audience.url = url;
+    }
+
+    public void setNameOfClass(String nameOfClass) {
+        this.nameOfClass = nameOfClass;
     }
 
     public ArrayList<String> getListOfFileNames() {
@@ -265,59 +279,6 @@ public class Audience implements Runnable {
 
     }
 
-    public static void geekforgeeks() throws IOException {
-        FileInputStream file = new FileInputStream("C:\\Basalykov\\e\\IRI_2-kurs_22_23_vesna_TANDEM_22.03.2023.xlsx");
-        XSSFWorkbook wb = new XSSFWorkbook((InputStream)file);
-        XSSFSheet sh = wb.getSheetAt(0);
-        ArrayList<String> map = new ArrayList<String>();
-        for (int r = 0; r <= sh.getLastRowNum(); ++r) {
-            try {
-                String value = sh.getRow(r).getCell(1).getStringCellValue();
-                map.add(value);
-                continue;
-            }
-            catch (NullPointerException npe) {
-                System.out.println('n');
-            }
-        }
-        for (String m : map) {
-            System.out.println(m);
-        }
-        wb.close();
-        file.close();
-    }
-
-    public static void objectRealiser(String filePath) throws FileNotFoundException, IOException {
-        File file = new File(filePath);
-        FileInputStream fis = new FileInputStream(file);
-        XSSFWorkbook wb = new XSSFWorkbook((InputStream)fis);
-        XSSFSheet sheet = wb.getSheetAt(0);
-        Iterator rIterator = sheet.rowIterator();
-        ArrayList<String> list = new ArrayList<String>();
-        XSSFRow row = sheet.getRow(2);
-        Iterator Cell2 = row.cellIterator();
-        while (Cell2.hasNext()) {
-            Cell cell = (Cell)Cell2.next();
-            switch (cell.getCellType()) {
-                case Cell.CELL_TYPE_STRING: {
-                    list.add(cell.getStringCellValue());
-                    break;
-                }
-                case Cell.CELL_TYPE_NUMERIC: {
-                    System.out.print(cell.getNumericCellValue());
-                    break;
-                }
-
-            }
-            System.out.println("|");
-            System.out.println();
-        }
-        for (String l : list) {
-            System.out.println(l);
-        }
-        wb.close();
-        fis.close();
-    }
 
     public static void getListOfGroupsFromFile(File path, String fileName) throws FileNotFoundException, IOException {
         File file = new File(path, fileName);
@@ -362,32 +323,53 @@ public class Audience implements Runnable {
         }
         return groupList;
     }
-    public static void dataBaseFileCreator(File path, String fileName) throws FileNotFoundException, IOException, NullPointerException {
+    public void dataBaseFileCreator(File path, String fileName) throws FileNotFoundException, IOException, NullPointerException {
         File file = new File(path, fileName);
         Log.d("MIREA_APP_TAG","File: " + fileName);
         FileInputStream fis = new FileInputStream(file);
         XSSFWorkbook wb = new XSSFWorkbook(fis);
         XSSFSheet sheet = wb.getSheetAt(0);
         ArrayList<SheetHelper> groupList = getListOfGroupsFromFile(sheet);
-        for (SheetHelper sh: groupList) {
-            Iterator rIterator = sheet.rowIterator();
-            for (int i = 3; i<=86; i++) {
-                Row row = sheet.getRow(i);
-                Cell cell = row.getCell(sh.getCellNumber());
-                String groupName = sh.getGroupName();
+        int numOfClassesInDay = checkNumbersOfClassinday(sheet);
+        int k =86;
+        if(numOfClassesInDay==8) {
+            k = 104;
+        }
+        Iterator rIterator = sheet.rowIterator();
+        for (int i = 3; i<=k; i++) {
+            Row row = sheet.getRow(i);
+            getInfoFromManyRows(row, sheet, fileName, groupList, numOfClassesInDay, i);
+
+        }
+    }
+
+
+    public int checkNumbersOfClassinday(XSSFSheet sheet) {
+
+
+        int maxValue=0;
+        int value = 0;
+        for (int i = 3; i<21;i++) {
+            Row row = sheet.getRow(i);
+            Cell cell = row.getCell(1);
+            try {
                 switch (cell.getCellType()) {
-
                     case Cell.CELL_TYPE_STRING:
-
-                        String value = cell.getStringCellValue();
-                        if (value.length() != 0) {
-                            int rowNum = row.getRowNum();
-                            getInfoFromRow(row, sheet, sh, sh.getGroupName(), rowNum, fileName);
-                        }
-
+                        value = Integer.parseInt(cell.getStringCellValue());
+                        break;
+                    case Cell.CELL_TYPE_NUMERIC:
+                        value = (int) cell.getNumericCellValue();
+                        break;
                 }
+            }catch (NullPointerException npe) {
+
+            }
+            if(value > maxValue) {
+                maxValue = value;
             }
         }
+
+        return maxValue;
     }
 
     public static String[] deleteValueFromArray (String[] array, int value) {
@@ -411,52 +393,67 @@ public class Audience implements Runnable {
 
     }
 
-    public static void getInfoFromRow(Row row,XSSFSheet sheet, SheetHelper sh, String group, int rowNum, String fileName) {
+    private void getInfoFromManyRows(Row row, XSSFSheet sheet, String fileName, ArrayList<SheetHelper> groupList, int numOfClassesInDay, int rowNum) {
+        for (SheetHelper sh : groupList) {
+            String group = sh.getGroupName();
+            int cellNum = sh.getCellNumber();
+            Cell cell = row.getCell(cellNum);
+            switch (cell.getCellType()) {
+                case Cell.CELL_TYPE_STRING:
+                    String value = cell.getStringCellValue();
+                    if (value.length() != 0) {
+                        getInfoFromRow(row, sheet, fileName, sh, numOfClassesInDay, rowNum);
+                    }
+            }
+        }
+    }
+    public static void getInfoFromRow(Row row,XSSFSheet sheet, String fileName, SheetHelper sh, int numOfClassesInDay, int rowNum) {
+
 
         //Log.i("MIREA_APP_TAG", "Group: " + group);
         ArrayList<Audience> info = new ArrayList<>(); // Лист с значениями
         //Audience cellInfo = new Audience();
-
+        String group = sh.getGroupName();
+        int cellNum = sh.getCellNumber();
         /*
         Нахождение названий пар. Хранение в массиве.
         dinamyc
         */
 
 
-            Cell cellDiscipline = row.getCell(sh.getCellNumber());
-            switch (cellDiscipline.getCellType()) {
-                case Cell.CELL_TYPE_STRING:
-                    String value = cellDiscipline.getStringCellValue().replaceAll("( ){4,}", "\n");
-                    String[] disciplineValues = value.split("\\v+");
-                    for (int i = 0; i < disciplineValues.length; i++) {
-                        if (disciplineValues[i].contains("каф.")) {
-                            disciplineValues = deleteValueFromArray(disciplineValues, i);
-                        }
+        Cell cellDiscipline = row.getCell(sh.getCellNumber());
+        switch (cellDiscipline.getCellType()) {
+            case Cell.CELL_TYPE_STRING:
+                String value = cellDiscipline.getStringCellValue().replaceAll("( ){4,}", "\n");
+                String[] disciplineValues = value.split("\\v+");
+                for (int i = 0; i < disciplineValues.length; i++) {
+                    if (disciplineValues[i].contains("каф.")) {
+                        disciplineValues = deleteValueFromArray(disciplineValues, i);
                     }
-                    if (disciplineValues[0].equals("Военная")) {
+                }
+                if (disciplineValues[0].equals("Военная")) {
+                    Audience au = new Audience();
+
+                    au.setDiscipline(value.replace("\n", " "));
+                    au.setGroup(group);
+                    info.add(au);
+                    //info.get(0).setDiscipline(value.replace("\n", " "));
+                } else {
+                    for (int i = 0; i < disciplineValues.length; i++) {
                         Audience au = new Audience();
 
-                        au.setDiscipline(value.replace("\n"," "));
+                        au.setDiscipline(disciplineValues[i]);
                         au.setGroup(group);
                         info.add(au);
-                        //info.get(0).setDiscipline(value.replace("\n", " "));
-                    } else {
-                        for (int i = 0; i < disciplineValues.length; i++) {
-                            Audience au = new Audience();
-
-                            au.setDiscipline(disciplineValues[i]);
-                            au.setGroup(group);
-                            info.add(au);
-                        }
                     }
-            }
+                }
+        }
 
 
 
         /*
         Нахождение название класса. Хранится в массиве
          */
-
 
 
         Cell cellName = row.getCell(sh.getCellNumber() + 3);
@@ -470,7 +467,7 @@ public class Audience implements Runnable {
                         au.setName(value);
                     }
                 } else if (info.size() < nameValues.length) {
-                    for ( int i = 0; i < nameValues.length; i++) {
+                    for (int i = 0; i < nameValues.length; i++) {
                         for (Audience au : info) {
                             au.setName(nameValues[i]);
                         }
@@ -481,142 +478,196 @@ public class Audience implements Runnable {
                     }
                 }
         }
+
+        try {
+            for (Audience au : info) {
+                String name = au.getName().replace("лаб", "")
+                        .replace("ауд", "")
+                        .replace("физ", "")
+                        .replace("комп", "");
+
+                String[] values = name.split("[,. ]+");
+                for (int i = 0; i < values.length; i++) {
+
+                    if (values[i].contains("(") && values[i].contains(")")) {
+                        au.setBuilding(values[i].replace("(", "")
+                                .replace(")", ""));
+                    } else {
+                        au.setNameOfClass(values[i]);
+                    }
+
+
+                }
+            }
+        }catch(NullPointerException npe) {
+
+        }
         /*
         Добавление преподавателя
         dinamyc
          */
-        try {
-            Cell cellTeacher = row.getCell(sh.getCellNumber() + 2);
-            switch (cellTeacher.getCellType()) {
-                case Cell.CELL_TYPE_STRING:
-                    String value = cellTeacher.getStringCellValue().replaceAll("( ){10,}", "\n");
-                    String[] teacherValues = value.split("\\v+");
-                    for (int i = 0; i < teacherValues.length; i++) {
-                        info.get(i).setTeacher(teacherValues[i]);
-                    }
+            try {
+                Cell cellTeacher = row.getCell(sh.getCellNumber() + 2);
+                switch (cellTeacher.getCellType()) {
+                    case Cell.CELL_TYPE_STRING:
+                        String value = cellTeacher.getStringCellValue().replaceAll("( ){10,}", "\n");
+                        String[] teacherValues = value.split("\\v+");
+                        for (int i = 0; i < teacherValues.length; i++) {
+                            info.get(i).setTeacher(teacherValues[i]);
+                        }
+                }
+            } catch (IndexOutOfBoundsException ioe) {
+                Cell cellTeacher = row.getCell(sh.getCellNumber() + 2);
+                switch (cellTeacher.getCellType()) {
+                    case Cell.CELL_TYPE_STRING:
+                        String value = cellTeacher.getStringCellValue();
+                        String[] teacherValues = value.split("\\v+");
+                        for (int i = 0; i < teacherValues.length; i++) {
+                            info.get(i).setTeacher(teacherValues[i]);
+                        }
+                }
             }
-        }catch (IndexOutOfBoundsException ioe) {
-            Cell cellTeacher = row.getCell(sh.getCellNumber() + 2);
-            switch (cellTeacher.getCellType()) {
-                case Cell.CELL_TYPE_STRING:
-                    String value = cellTeacher.getStringCellValue();
-                    String[] teacherValues = value.split("\\v+");
-                    for (int i = 0; i < teacherValues.length; i++) {
-                        info.get(i).setTeacher(teacherValues[i]);
-                    }
-            }
-        }
         /*
         Добавление типа предмета
         dynamic
          */
-        Cell cellTypeOfClass = row.getCell(sh.getCellNumber()+1);
-        switch (cellTypeOfClass.getCellType()) {
-            case Cell.CELL_TYPE_STRING:
-                String value = cellTypeOfClass.getStringCellValue().replaceAll("( ){4,}", "\n");
-                String[] classesValues = value.split("\\v+");
-                for (int i = 0; i< classesValues.length;i++) {
-                    info.get(i).setTypeOfClass(classesValues[i]);
-                }
-        }
+            Cell cellTypeOfClass = row.getCell(sh.getCellNumber() + 1);
+            switch (cellTypeOfClass.getCellType()) {
+                case Cell.CELL_TYPE_STRING:
+                    String value = cellTypeOfClass.getStringCellValue().replaceAll("( ){4,}", "\n");
+                    String[] classesValues = value.split("\\v+");
+                    for (int i = 0; i < classesValues.length; i++) {
+                        info.get(i).setTypeOfClass(classesValues[i]);
+                    }
+            }
         /*
         Добавление дня недели
          */
-        if (rowNum <17) {
-            for (Audience au : info) {
-                au.setDay("ПОНЕДЕЛЬНИК");
+        if (numOfClassesInDay == 7) {
+            if (rowNum < 17) {
+                for (Audience au : info) {
+                    au.setDay("ПОНЕДЕЛЬНИК");
+                }
+            } else if (rowNum >= 17 && rowNum < 31) {
+                for (Audience au : info) {
+                    au.setDay("ВТОРНИК");
+                }
+            } else if (rowNum >= 31 && rowNum < 45) {
+                for (Audience au : info) {
+                    au.setDay("СРЕДА");
+                }
+            } else if (rowNum >= 45 && rowNum < 59) {
+                for (Audience au : info) {
+                    au.setDay("ЧЕТВЕРГ");
+                }
+            } else if (rowNum >= 59 && rowNum < 73) {
+                for (Audience au : info) {
+                    au.setDay("ПЯТНИЦА");
+                }
+            } else if (rowNum >= 73 && rowNum < 86) {
+                for (Audience au : info) {
+                    au.setDay("СУББОТА");
+                }
             }
-        } else if (rowNum >= 17 && rowNum <31) {
-            for (Audience au : info) {
-                au.setDay("ВТОРНИК");
-            }
-        } else if (rowNum >= 31 && rowNum < 45) {
-            for (Audience au : info) {
-                au.setDay("СРЕДА");
-            }
-        } else if (rowNum >= 45 && rowNum <59) {
-            for (Audience au : info) {
-                au.setDay("ЧЕТВЕРГ");
-            }
-        } else if (rowNum >= 59 && rowNum <73) {
-            for (Audience au : info) {
-                au.setDay("ПЯТНИЦА");
-            }
-        } else if (rowNum >=73 && rowNum < 86) {
-            for (Audience au : info) {
-                au.setDay("СУББОТА");
+        } else if(numOfClassesInDay==8) {
+            if (rowNum < 21) {
+                for (Audience au : info) {
+                    au.setDay("ПОНЕДЕЛЬНИК");
+                }
+            } else if (rowNum >= 21 && rowNum < 39) {
+                for (Audience au : info) {
+                    au.setDay("ВТОРНИК");
+                }
+            } else if (rowNum >= 39 && rowNum < 57) {
+                for (Audience au : info) {
+                    au.setDay("СРЕДА");
+                }
+            } else if (rowNum >= 57 && rowNum < 75) {
+                for (Audience au : info) {
+                    au.setDay("ЧЕТВЕРГ");
+                }
+            } else if (rowNum >= 75 && rowNum < 93) {
+                for (Audience au : info) {
+                    au.setDay("ПЯТНИЦА");
+                }
+            } else if (rowNum >= 93 && rowNum < 104) {
+                for (Audience au : info) {
+                    au.setDay("СУББОТА");
+                }
             }
         }
         /*
         Добавление недели
          */
-        Cell cellNumOfWeek = row.getCell(4);
-        switch (cellNumOfWeek.getCellType()) {
-            case Cell.CELL_TYPE_STRING:
-                String value = cellNumOfWeek.getStringCellValue();
-                int numOfWeek = value.length();
-                for (Audience au : info) {
-                    au.setWeek(numOfWeek);
-                }
-        }
+            Cell cellNumOfWeek = row.getCell(4);
+            switch (cellNumOfWeek.getCellType()) {
+                case Cell.CELL_TYPE_STRING:
+                    String value = cellNumOfWeek.getStringCellValue();
+                    int numOfWeek = value.length();
+                    for (Audience au : info) {
+                        au.setWeek(numOfWeek);
+                    }
+            }
         /*
         Добавление номера пары
          */
-        try {
-            Cell cellNumOfClass = row.getCell(1);
-            switch (cellNumOfClass.getCellType()) {
-                case Cell.CELL_TYPE_STRING:
-                    String value = cellNumOfClass.getStringCellValue();
-                    for (Audience au : info) {
-                        au.setNumOfClass(value);
-                    }
-                    break;
-                case Cell.CELL_TYPE_NUMERIC:
-                    int intValue = (int) cellNumOfClass.getNumericCellValue();
-                    String newvalue = String.valueOf(intValue);
-                    for (Audience au : info) {
-                        au.setNumOfClass(newvalue);
-                    }
-                    break;
-            }
-        } catch (NullPointerException npe) {
+            try {
+                Cell cellNumOfClass = row.getCell(1);
+                switch (cellNumOfClass.getCellType()) {
+                    case Cell.CELL_TYPE_STRING:
+                        String value = cellNumOfClass.getStringCellValue();
+                        for (Audience au : info) {
+                            au.setNumOfClass(value);
+                        }
+                        break;
+                    case Cell.CELL_TYPE_NUMERIC:
+                        int intValue = (int) cellNumOfClass.getNumericCellValue();
+                        String newvalue = String.valueOf(intValue);
+                        for (Audience au : info) {
+                            au.setNumOfClass(newvalue);
+                        }
+                        break;
+                }
+            } catch (NullPointerException npe) {
 
-        }
+            }
         /*
         Проверка номера пары
          */
-        for (Audience au: info) {
-            if (au.getNumOfClass() == null) {
-                int rowNumber = row.getRowNum();
-                Row checkRow = sheet.getRow(rowNumber-1);
-                Cell cellNum = checkRow.getCell(1);
-                switch (cellNum.getCellType()) {
-                    case Cell.CELL_TYPE_STRING:
-                        String value = cellNum.getStringCellValue();
-                        au.setNumOfClass(value);
-                        break;
-                    case Cell.CELL_TYPE_NUMERIC:
-                        int intValue = (int) cellNum.getNumericCellValue();
-                        String newvalue = String.valueOf(intValue);
-                        au.setNumOfClass(newvalue);
-                        break;
+            for (Audience au : info) {
+                if (au.getNumOfClass() == null) {
+                    int rowNumber = row.getRowNum();
+                    Row checkRow = sheet.getRow(rowNumber - 1);
+                    Cell cellNumOfClass = checkRow.getCell(1);
+                    switch (cellNumOfClass.getCellType()) {
+                        case Cell.CELL_TYPE_STRING:
+                            String value = cellNumOfClass.getStringCellValue();
+                            au.setNumOfClass(value);
+                            break;
+                        case Cell.CELL_TYPE_NUMERIC:
+                            int intValue = (int) cellNumOfClass.getNumericCellValue();
+                            String newvalue = String.valueOf(intValue);
+                            au.setNumOfClass(newvalue);
+                            break;
+                    }
                 }
             }
-        }
 
-        /*
+
         for (Audience au: info) {
             Log.i("MIREA_APP_TAG"," Неделя " + au.getWeek() + " Day: " + au.getDay() + " Пара: " + au.getNumOfClass() + " Кабинет: " + au.getName()
                     + " Дисциплина: " + au.getDiscipline() + " Группы "+ au.getGroup() + " тип пары" + au.getTypeOfClass()  + " Преподаватель" + au.getTeacher());
         }
-        */
-        for (Audience au : info) {
-            if (au.getNumOfClass()==null || au.getTypeOfClass()==null || au.getDiscipline()==null || au.getName()==null) {
-                Log.i("MIREA_APP_TAG", "File: " + fileName);
-                Log.i("MIREA_APP_TAG"," Неделя " + au.getWeek() + " Day: " + au.getDay() + " Пара: " + au.getNumOfClass() + " Кабинет: " + au.getName()
-                        + " Дисциплина: " + au.getDiscipline() + " Группы "+ au.getGroup() + " тип пары" + au.getTypeOfClass()  + " Преподаватель" + au.getTeacher());
+
+        /*
+            for (Audience au : info) {
+                if (au.getNumOfClass() == null || au.getTypeOfClass() == null || au.getDiscipline() == null || au.getName() == null) {
+                    Log.i("MIREA_APP_TAG", "File: " + fileName);
+                    Log.i("MIREA_APP_TAG", " Неделя " + au.getWeek() + " Day: " + au.getDay() + " Пара: " + au.getNumOfClass() + " Кабинет: " + au.getName()
+                            + " Дисциплина: " + au.getDiscipline() + " Группы " + au.getGroup() + " тип пары" + au.getTypeOfClass() + " Преподаватель" + au.getTeacher());
+                }
             }
-        }
+        */
     }
 
     public void differentialDataBaseCreator(File path, String fileName) {

@@ -6,110 +6,129 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_gravity="center"
-    android:padding="80dp">
+    >
 
     <androidx.cardview.widget.CardView
         android:id="@+id/cardView"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="match_parent"
         android:layout_marginTop="80dp"
         android:layout_marginBottom="80dp"
         android:background="@color/white"
+        app:cardCornerRadius="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-
-        <TextView
-            android:id="@+id/numberOfClass"
+            <RelativeLayout
+            android:id="@+id/relativeLayout"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Num of para"
-            android:textAlignment="center"
-            android:textSize="20sp" />
+            android:layout_height="match_parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
-        <com.google.android.material.chip.ChipGroup
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="10sp"
+                <TextView
+                    android:id="@+id/numberOfClass"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/numOfPara"
+                    android:textAlignment="center"
+                    android:textSize="22sp" />
 
-            >
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/layout1"
+                    android:layout_below="@id/numberOfClass"
+                    android:layout_marginTop="10dp">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="1"
-                android:textSize="10sp"
-                style="@style/Widget.MaterialComponents.Chip.Filter"
-                />
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_centerHorizontal="true">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="2"
-                android:textSize="10sp"
-                style="@style/Widget.MaterialComponents.Chip.Filter"
-                />
+                        <CheckBox
+                            android:id="@+id/checkBox1"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="1" />
+                        <CheckBox
+                            android:id="@+id/checkBox2"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="2"
+                            android:layout_alignLeft="@id/checkBox1"/>
+                        <CheckBox
+                            android:id="@+id/checkBox3"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="3" />
+                        <CheckBox
+                            android:id="@+id/checkBox4"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="4" />
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip3"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="3"
-                android:textSize="10sp"
-                style="@style/Widget.MaterialComponents.Chip.Filter"
-                />
+                    </LinearLayout>
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip4"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="4"
-                android:textSize="10sp"
-                style="@style/Widget.MaterialComponents.Chip.Filter"
-                />
+                </RelativeLayout>
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip5"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="5"
-                android:textSize="10sp"
-                style="@style/Widget.MaterialComponents.Chip.Filter"
-                />
+                <RelativeLayout
+                    android:id="@+id/rl2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/layout1">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip6"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="6"
-                android:textSize="10sp"
-                style="@style/Widget.MaterialComponents.Chip.Filter"
-                />
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_centerHorizontal="true">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip7"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="7"
-                android:textSize="10sp"
-                style="@style/Widget.MaterialComponents.Chip.Filter"
-                />
+                        <CheckBox
+                            android:id="@+id/checkBox5"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="5" />
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip8"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="8"
-                android:textSize="10sp"
-                style="@style/Widget.MaterialComponents.Chip.Filter"
-                />
-        </com.google.android.material.chip.ChipGroup>
+                        <CheckBox
+                            android:id="@+id/checkBox6"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="6" />
+
+                        <CheckBox
+                            android:id="@+id/checkBox7"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="7" />
+
+                        <CheckBox
+                            android:id="@+id/checkBox8"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="8" />
+
+                    </LinearLayout>
+
+                </RelativeLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/rl2"
+                    android:text="Выберите корпус"
+                    android:textSize="22sp"
+                    android:textAlignment="center"
+                    android:layout_marginTop="10dp"
+                    />
+
+
+            </RelativeLayout>
 
     </androidx.cardview.widget.CardView>
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>
