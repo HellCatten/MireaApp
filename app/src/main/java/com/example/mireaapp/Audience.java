@@ -402,7 +402,11 @@ public class Audience implements Runnable {
                 case Cell.CELL_TYPE_STRING:
                     String value = cell.getStringCellValue();
                     if (value.length() != 0) {
-                        getInfoFromRow(row, sheet, fileName, sh, numOfClassesInDay, rowNum);
+                        try {
+                            getInfoFromRow(row, sheet, fileName, sh, numOfClassesInDay, rowNum);
+                        }catch (NullPointerException npe) {
+
+                        }
                     }
             }
         }
@@ -674,7 +678,10 @@ public class Audience implements Runnable {
         if (fileName.contains("ekz")) {
 
         } else if (fileName.contains("zach")) {
-        } else {
+
+        } else if(fileName.contains("gia")) {
+
+        }else {
             try {
                 dataBaseFileCreator(path, fileName);
             } catch (IOException e) {

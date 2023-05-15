@@ -28,6 +28,22 @@ public class FilesDataBase extends SQLiteOpenHelper {
                 + "file_name text,"
                 + "is_usable integer"
                 + ");");
+        bd.execSQL("create table " + "TABLE_AUDIENCES" + " ("
+                + "_id integer primary key autoincrement,"
+                + "cab_name text,"
+                + "building text,"
+                + "campus text"
+                + ");");
+        bd.execSQL("create table " + "TABLE_RASP" + " ("
+                + "_id integer primary key autoincrement,"
+                + "cab_name text,"
+                + "building text,"
+                + "campus text,"
+                + "number_h text,"
+                + "day text,"
+                + "number_week text,"
+                + "teacher text"
+                + ");");
     }
 
     @Override
