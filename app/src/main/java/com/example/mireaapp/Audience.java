@@ -13,6 +13,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import java.io.InputStream;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.FileInputStream;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.io.FileOutputStream;
 import java.io.BufferedInputStream;
@@ -41,6 +42,16 @@ public class Audience implements Runnable {
     private String typeOfClass; //Тип пары, лк, пр, лаб
     private String campus; //Корпус, А,Б,В,Г,Д
     private File path;
+
+    private static HashSet audiences;
+
+    public HashSet getAudiences() {
+        return audiences;
+    }
+
+    public void setAudiences(HashSet audiences) {
+        this.audiences = audiences;
+    }
 
     private ArrayList<String> listOfFileNames;
     private int week;
@@ -402,11 +413,7 @@ public class Audience implements Runnable {
                 case Cell.CELL_TYPE_STRING:
                     String value = cell.getStringCellValue();
                     if (value.length() != 0) {
-                        try {
-                            getInfoFromRow(row, sheet, fileName, sh, numOfClassesInDay, rowNum);
-                        }catch (NullPointerException npe) {
-
-                        }
+                        getInfoFromRow(row, sheet, fileName, sh, numOfClassesInDay, rowNum);
                     }
             }
         }
@@ -424,7 +431,7 @@ public class Audience implements Runnable {
         dinamyc
         */
 
-
+        /*
         Cell cellDiscipline = row.getCell(sh.getCellNumber());
         switch (cellDiscipline.getCellType()) {
             case Cell.CELL_TYPE_STRING:
@@ -452,7 +459,7 @@ public class Audience implements Runnable {
                     }
                 }
         }
-
+        */
 
 
         /*
@@ -464,25 +471,43 @@ public class Audience implements Runnable {
         //ArrayList<String> info = new ArrayList<>();
         switch (cellName.getCellType()) {
             case Cell.CELL_TYPE_STRING:
-                String value = cellName.getStringCellValue().replaceAll("( ){10,}", "\n");
+                String value = cellName.getStringCellValue().replaceAll("[., ]+", "\n");
                 String[] nameValues = value.split("\\v+");
-                if (value.equals("Д")) {
-                    for (Audience au : info) {
-                        au.setName(value);
-                    }
-                } else if (info.size() < nameValues.length) {
+                for (int i = 0; i < nameValues.length; i++) {
+                    Audience au = new Audience();
+                    au.setGroup(group);
+                    info.add(au);
+                }
+                int counter = 0;
+                if (nameValues.length > 1) {
                     for (int i = 0; i < nameValues.length; i++) {
-                        for (Audience au : info) {
-                            au.setName(nameValues[i]);
+
+                        if (nameValues[i].contains("лаб") || nameValues[i].contains("ауд") || nameValues[i].contains("физ") || nameValues[i].contains("комп") || nameValues[i].contains("№")
+                                || nameValues[i].contains("СДО") || nameValues[i].contains("аф") || nameValues[i].equals("д") || nameValues[i].equals("Д") || nameValues[i].contains("истанционно")) {
+                            continue;
+                        } else if (nameValues[i].contains("(") && nameValues[i].contains(")")) {
+                            info.get(counter).setBuilding(nameValues[i].replace("(", "")
+                                    .replace(")", ""));
+                        } else {
+                            info.get(counter).setNameOfClass(nameValues[i]);
                         }
-                    }
-                } else {
-                    for (int i = 0; i < nameValues.length; i++) {
-                        info.get(i).setName(nameValues[i]);
+
+                        Audience au = info.get(counter);
+                        if (au.getBuilding()!=null && au.getNameOfClass()!=null ) {
+                            counter++;
+                        }
                     }
                 }
         }
 
+        for (int i = 0; i < info.size(); i++) {
+            Audience au = info.get(i);
+            if (au.getBuilding()==null && au.getNameOfClass()==null) {
+                info.remove(i);
+                i--;
+            }
+        }
+        /*
         try {
             for (Audience au : info) {
                 String name = au.getName().replace("лаб", "")
@@ -506,10 +531,13 @@ public class Audience implements Runnable {
         }catch(NullPointerException npe) {
 
         }
+
+         */
         /*
         Добавление преподавателя
         dinamyc
          */
+        /*
             try {
                 Cell cellTeacher = row.getCell(sh.getCellNumber() + 2);
                 switch (cellTeacher.getCellType()) {
@@ -531,10 +559,13 @@ public class Audience implements Runnable {
                         }
                 }
             }
+            */
+
         /*
         Добавление типа предмета
         dynamic
          */
+        /*
             Cell cellTypeOfClass = row.getCell(sh.getCellNumber() + 1);
             switch (cellTypeOfClass.getCellType()) {
                 case Cell.CELL_TYPE_STRING:
@@ -544,6 +575,8 @@ public class Audience implements Runnable {
                         info.get(i).setTypeOfClass(classesValues[i]);
                     }
             }
+
+         */
         /*
         Добавление дня недели
          */
@@ -659,10 +692,13 @@ public class Audience implements Runnable {
 
 
         for (Audience au: info) {
-            Log.i("MIREA_APP_TAG"," Неделя " + au.getWeek() + " Day: " + au.getDay() + " Пара: " + au.getNumOfClass() + " Кабинет: " + au.getName()
-                    + " Дисциплина: " + au.getDiscipline() + " Группы "+ au.getGroup() + " тип пары" + au.getTypeOfClass()  + " Преподаватель" + au.getTeacher());
+            Log.i("MIREA_APP_TAG"," Неделя " + au.getWeek() + " Day: " + au.getDay() + " Пара: " + au.getNumOfClass()
+                     + " Группа "+ au.getGroup() + " Адрес " + au.getBuilding() + " Кабинет " + au.getNameOfClass());
         }
 
+        for (Audience au : info) {
+            //audiences.add(au);
+        }
         /*
             for (Audience au : info) {
                 if (au.getNumOfClass() == null || au.getTypeOfClass() == null || au.getDiscipline() == null || au.getName() == null) {
@@ -676,12 +712,9 @@ public class Audience implements Runnable {
 
     public void differentialDataBaseCreator(File path, String fileName) {
         if (fileName.contains("ekz")) {
-
         } else if (fileName.contains("zach")) {
-
-        } else if(fileName.contains("gia")) {
-
-        }else {
+        } else if (fileName.contains("gia")) {
+        } else {
             try {
                 dataBaseFileCreator(path, fileName);
             } catch (IOException e) {
@@ -690,6 +723,8 @@ public class Audience implements Runnable {
         }
 
     }
+
+
 
 
 
