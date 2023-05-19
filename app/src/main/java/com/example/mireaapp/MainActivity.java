@@ -22,6 +22,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.widget.CheckBox;
+import android.widget.Switch;
 
 import com.prolificinteractive.materialcalendarview.CalendarDay;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
@@ -37,12 +39,17 @@ public class MainActivity extends AppCompatActivity {
     private File path;
     private static Audience au = new Audience();
 
+    private DBManager dbManager;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Context context = getApplicationContext();
+        //this.dbManager = new DBManager(new FilesDataBase(this, "my_database.db", null, 1));
+        //this.dbManager.setPath(path);
+        /*
         ActivityCompat.requestPermissions( this,
                 new String[]{
                         Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -50,8 +57,16 @@ public class MainActivity extends AppCompatActivity {
                 }, 1
         );
         File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        //File path = context.getFilesDir();
+         */
+        File path = context.getFilesDir();
+        this.dbManager = new DBManager(new FilesDataBase(this, "my_database.db", null, 1));
+
+        this.dbManager.setPath(path);
+        dbManager.saveFilesToDatabase();
+        Thread thread = new Thread(dbManager);
+        thread.start();
         au.setPath(path);
+        au.setContext(context);
         MaterialCalendarView cv = findViewById(R.id.calendarView);
         cv.setSelectedDate(CalendarDay.today());
         Toolbar tb = findViewById(R.id.toolbar);
@@ -62,15 +77,30 @@ public class MainActivity extends AppCompatActivity {
             ab.setTitle("Аудитории");
         }
         Log.i("MIREA_APP_TAG", String.valueOf(path));
-        Thread thread = new Thread(au);
-        thread.start();
+        //Thread thread = new Thread(au);
+        //thread.start();
         //fileDataBaseWorker();
+        thread.start();
     }
 
     public void showCustomDialog() {
         dialog.setContentView(R.layout.settings_dialog_layout);
         dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         dialog.show();
+
+        CheckBox checkBox1 = findViewById(R.id.checkBox1);
+        CheckBox checkBox2 = findViewById(R.id.checkBox2);
+        CheckBox checkBox3 = findViewById(R.id.checkBox3);
+        CheckBox checkBox4 = findViewById(R.id.checkBox4);
+        CheckBox checkBox5 = findViewById(R.id.checkBox5);
+        CheckBox checkBox6 = findViewById(R.id.checkBox6);
+        CheckBox checkBox7 = findViewById(R.id.checkBox7);
+        CheckBox checkBox8 = findViewById(R.id.checkBox8);
+        CheckBox checkBoxB78 = findViewById(R.id.checkBoxBuildingB78);
+        CheckBox checkBoxB86 = findViewById(R.id.checkBoxBuildingB86);
+        CheckBox checkBoxMP1 = findViewById(R.id.checkBoxBuildingMP1);
+        CheckBox checkBoxC20 = findViewById(R.id.checkBoxBuildingC20);
+        CheckBox checkBoxCG22 = findViewById(R.id.checkBoxBuildingCG22);
     }
 
     @Override

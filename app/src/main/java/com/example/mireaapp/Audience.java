@@ -1,5 +1,6 @@
 package com.example.mireaapp;
 
+import android.content.Context;
 import android.util.Log;
 
 import java.io.FileNotFoundException;
@@ -13,6 +14,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import java.io.InputStream;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.FileInputStream;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.io.FileOutputStream;
@@ -29,8 +31,30 @@ import java.util.ArrayList;
 
 public class Audience implements Runnable {
 
+    private Context context;
+
+    public Context getContext() {
+        return context;
+    }
+
+    public void setContext(Context context) {
+        this.context = context;
+    }
+
     private static String url = "https://www.mirea.ru/schedule/";
     private String name;
+
+    private static DBManager dbManager;
+    private String fileName;
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
     private String nameOfClass;
     private String building; //Какой корпус
     private String day; //День недели
@@ -43,14 +67,10 @@ public class Audience implements Runnable {
     private String campus; //Корпус, А,Б,В,Г,Д
     private File path;
 
-    private static HashSet audiences;
+    private static HashMap<String, Audience> audienceHashMap = new HashMap<>();
 
-    public HashSet getAudiences() {
-        return audiences;
-    }
-
-    public void setAudiences(HashSet audiences) {
-        this.audiences = audiences;
+    public static HashMap<String, Audience> getAudienceHashMap() {
+        return audienceHashMap;
     }
 
     private ArrayList<String> listOfFileNames;
@@ -200,6 +220,31 @@ public class Audience implements Runnable {
         return path;
     }
 
+    public static ArrayList<String> getListOfFilesToDownload() {
+        String source = "https://www.mirea.ru/schedule/";
+        ArrayList<String> listURL = new ArrayList<String>();
+        try {
+            String current;
+            URL url = new URL(source);
+            URLConnection urlConnection = url.openConnection();
+            HttpURLConnection connection = (HttpURLConnection)urlConnection;
+            connection.setRequestMethod("GET");
+            InputStreamReader isr = new InputStreamReader(connection.getInputStream());
+            BufferedReader in = new BufferedReader(isr);
+            StringBuilder urlString = new StringBuilder();
+            while ((current = in.readLine()) != null) {
+                urlString.append(current);
+            }
+            String[] listUrl = urlString.toString().split("\"");
+            Stream<String> stream = Arrays.stream(listUrl);
+            stream.filter(x -> x.toString().contains(".xlsx")).distinct().forEach(x -> listURL.add((String)x));
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return listURL;
+    }
+
     public static ArrayList<String> getListOfFilesToDownload(String source) {
         ArrayList<String> listURL = new ArrayList<String>();
         try {
@@ -247,7 +292,7 @@ public class Audience implements Runnable {
         }
     }
 
-    public ArrayList<String> getListOfNamesFromListOfLinks(ArrayList<String> links) {
+    public static ArrayList<String> getListOfNamesFromListOfLinks(ArrayList<String> links) {
         ArrayList<String> listOfNames = new ArrayList<>();
         for (String u : links) {
             String[] link = u.split("/");
@@ -260,7 +305,7 @@ public class Audience implements Runnable {
 
     }
 
-    public  void downloadlistOfFiles(ArrayList<String> listURL,ArrayList<String> listOfNames, File path) {
+    public static void downloadlistOfFiles(ArrayList<String> listURL,ArrayList<String> listOfNames, File path) {
 
         for (int i = 0; i< listURL.size();i++) {
             String fileName = listOfNames.get(i);
@@ -475,6 +520,7 @@ public class Audience implements Runnable {
                 String[] nameValues = value.split("\\v+");
                 for (int i = 0; i < nameValues.length; i++) {
                     Audience au = new Audience();
+                    au.setFileName(fileName);
                     au.setGroup(group);
                     info.add(au);
                 }
@@ -483,7 +529,8 @@ public class Audience implements Runnable {
                     for (int i = 0; i < nameValues.length; i++) {
 
                         if (nameValues[i].contains("лаб") || nameValues[i].contains("ауд") || nameValues[i].contains("физ") || nameValues[i].contains("комп") || nameValues[i].contains("№")
-                                || nameValues[i].contains("СДО") || nameValues[i].contains("аф") || nameValues[i].equals("д") || nameValues[i].equals("Д") || nameValues[i].contains("истанционно")) {
+                                || nameValues[i].contains("СДО") || nameValues[i].contains("аф") || nameValues[i].equals("д") || nameValues[i].equals("Д") || nameValues[i].contains("истанционно")
+                                || nameValues[i].contains("аза") || nameValues[i].contains("МИРЭА")) {
                             continue;
                         } else if (nameValues[i].contains("(") && nameValues[i].contains(")")) {
                             info.get(counter).setBuilding(nameValues[i].replace("(", "")
@@ -502,7 +549,7 @@ public class Audience implements Runnable {
 
         for (int i = 0; i < info.size(); i++) {
             Audience au = info.get(i);
-            if (au.getBuilding()==null && au.getNameOfClass()==null) {
+            if (au.getBuilding()==null || au.getNameOfClass()==null) {
                 info.remove(i);
                 i--;
             }
@@ -691,13 +738,21 @@ public class Audience implements Runnable {
             }
 
 
+
         for (Audience au: info) {
             Log.i("MIREA_APP_TAG"," Неделя " + au.getWeek() + " Day: " + au.getDay() + " Пара: " + au.getNumOfClass()
                      + " Группа "+ au.getGroup() + " Адрес " + au.getBuilding() + " Кабинет " + au.getNameOfClass());
         }
 
+        for(Audience au: info) {
+            String key = au.getBuilding()+au.getNameOfClass();
+            audienceHashMap.put(key, au);
+        }
+
         for (Audience au : info) {
-            //audiences.add(au);
+            boolean i = dbManager.saveRaspAudienceToDatabase(au);
+            Log.i("MIREA_APP_TAG","SAVED  Неделя " + au.getWeek() + " Day: " + au.getDay() + " Пара: " + au.getNumOfClass()
+                    + " Адрес " + au.getBuilding() + " Кабинет " + au.getNameOfClass() + " Корпус " + au.getCampus());
         }
         /*
             for (Audience au : info) {
@@ -725,12 +780,17 @@ public class Audience implements Runnable {
     }
 
 
-
+    public void work(ArrayList<String> listOfFilesNames, File path) {
+        for (String u : listOfFilesNames) {
+            differentialDataBaseCreator(path, u);
+        }
+    }
 
 
     @Override
     public void run() {
 
+        this.dbManager = new DBManager(new FilesDataBase(context, "my_database.db", null,1));
 
         ArrayList<String> listOfLinksToDownload = getListOfFilesToDownload(url);
         Log.i("MIREA_APP_TAG", String.valueOf(listOfLinksToDownload));
@@ -743,6 +803,8 @@ public class Audience implements Runnable {
                 differentialDataBaseCreator(path,u);
 
         }
+
+
 
 
     }

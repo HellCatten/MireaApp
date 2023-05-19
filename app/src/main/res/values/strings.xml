@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">MireaApp</string>
-    <string name="numOfPara">Выберите пару</string>
+    <string name="numOfPara">Выберите номер пары</string>
+    <string name="adress">Выберите адрес</string>
 </resources>
