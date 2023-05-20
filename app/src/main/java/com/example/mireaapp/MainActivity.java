@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
         this.dbManager = new DBManager(new FilesDataBase(this, "my_database.db", null, 1));
 
         this.dbManager.setPath(path);
-        dbManager.saveFilesToDatabase();
+        //dbManager.saveFilesToDatabase();
         Thread thread = new Thread(dbManager);
         thread.start();
         au.setPath(path);

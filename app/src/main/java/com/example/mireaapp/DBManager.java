@@ -4,6 +4,7 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteAccessPermException;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.AsyncTask;
 
@@ -16,9 +17,9 @@ public class DBManager implements Runnable {
 
     private SQLiteOpenHelper sqLiteHelper;
 
-    private ArrayList<String> listOfFilesToDownload = Audience.getListOfFilesToDownload();
+    private ArrayList<String> listOfFilesToDownload;
 
-    private ArrayList<String> listOfFiles = Audience.getListOfNamesFromListOfLinks(listOfFilesToDownload);
+    private ArrayList<String> listOfFiles;
     private ArrayList<String> listOfFilestoDelete;
 
     private static File path;
@@ -39,7 +40,7 @@ public class DBManager implements Runnable {
 
         initializeFilesInDatabase();
 
-        for(int i = 0; i < this.listOfFiles.size(); i++ ) {
+        for(int i = 0; i < listOfFiles.size(); i++ ) {
             saveFileToDatabase(listOfFiles.get(i), listOfFilesToDownload.get(i));
         }
 
@@ -105,17 +106,32 @@ public class DBManager implements Runnable {
 
         }
          */
-
-        db.execSQL("INSERT OR REPLACE INTO TABLE_FILES (file_name, is_downloaded, is_delete, file_load)" +
-                " VALUES (" + fileName + ", " + "(SELECT is_downloaded FROM TABLE_FILES WHERE file_name = " + fileName + "), " +
-                "1, " + loadName + ");");
+        try {
+            db.execSQL("INSERT OR REPLACE INTO TABLE_FILES (file_name, is_downloaded, is_delete, file_load)" +
+                    " VALUES (" + fileName + ", " + "(SELECT is_downloaded FROM TABLE_FILES WHERE file_name = " + fileName + "), " +
+                    "1, " + loadName + ");");
+            db.close();
+        } catch (SQLiteException e) {
+            ContentValues cv = new ContentValues();
+            cv.put("file_name", fileName);
+            //cv.put("is_downloaded", 0);
+            cv.put("is_delete",1);
+            cv.put("file_load", loadName);
+            long rowId = db.replace("TABLE_FILES", null, cv);
+            cv.clear();
+            db.close();
+        }
         return true;
     }
 
     public void initializeFilesInDatabase() {
         SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
-        db.execSQL("UPDATE TABLE_FILES SET is_delete = 0", null);
-        db.close();
+        try {
+            db.execSQL("UPDATE TABLE_FILES SET is_delete = 0", null);
+            db.close();
+        }catch (IllegalArgumentException iae) {
+
+        }
     }
 
     public void deleteUnusedFilesFromDatabase() {
@@ -224,8 +240,11 @@ public class DBManager implements Runnable {
 
     @Override
     public void run() {
+        listOfFilesToDownload = Audience.getListOfFilesToDownload();
+        listOfFiles = Audience.getListOfNamesFromListOfLinks(listOfFilesToDownload);
         saveFilesToDatabase();
     }
+
 
 
 }
