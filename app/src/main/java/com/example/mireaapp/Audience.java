@@ -1,6 +1,7 @@
 package com.example.mireaapp;
 
 import android.content.Context;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import java.io.FileNotFoundException;
@@ -31,7 +32,12 @@ import java.util.ArrayList;
 
 public class Audience implements Runnable {
 
-    private static Context context;
+    private Context context;
+    private SQLiteOpenHelper sqLiteOpenHelper;
+
+    public void setSqLiteOpenHelper(SQLiteOpenHelper sqLiteOpenHelper) {
+        this.sqLiteOpenHelper = sqLiteOpenHelper;
+    }
 
     public Context getContext() {
         return context;
@@ -44,7 +50,7 @@ public class Audience implements Runnable {
     private static String url = "https://www.mirea.ru/schedule/";
     private String name;
 
-    private static DBManager dbManager = new DBManager(new FilesDataBase(null, "my_database.db", null, 1));
+    private DBManager dbManager = new DBManager(new FilesDataBase(context, "my_database.db", null, 1));
     private String fileName;
 
     public String getFileName() {
@@ -314,7 +320,7 @@ public class Audience implements Runnable {
             try {
                 downloadOneFile(url,fileName,path);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                //throw new RuntimeException(e);
             }
         }
         /*
@@ -464,7 +470,7 @@ public class Audience implements Runnable {
             }
         }
     }
-    public static void getInfoFromRow(Row row,XSSFSheet sheet, String fileName, SheetHelper sh, int numOfClassesInDay, int rowNum) {
+    public void getInfoFromRow(Row row,XSSFSheet sheet, String fileName, SheetHelper sh, int numOfClassesInDay, int rowNum) {
 
 
         //Log.i("MIREA_APP_TAG", "Group: " + group);
@@ -751,7 +757,7 @@ public class Audience implements Runnable {
         }
 
         for (Audience au : info) {
-            dbManager.saveRaspAudienceToDatabase(au);
+            dbManager.saveRaspAudienceToDatabase(au, sqLiteOpenHelper);
             Log.i("MIREA_APP_TAG","SAVED  Неделя " + au.getWeek() + " Day: " + au.getDay() + " Пара: " + au.getNumOfClass()
                     + " Адрес " + au.getBuilding() + " Кабинет " + au.getNameOfClass() + " Корпус " + au.getCampus());
         }

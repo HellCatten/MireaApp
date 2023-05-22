@@ -98,6 +98,7 @@ public class DBManager implements Runnable {
 
         Audience au = new Audience();
         au.setContext(context);
+        au.setSqLiteOpenHelper(sqLiteHelper);
         au.work(listNamesOfFiles, path);
         HashMap<String, Audience> hashMap = au.getAudienceHashMap();
 
@@ -273,8 +274,8 @@ public class DBManager implements Runnable {
         return rowId != -1;
     }
 
-    public void saveRaspAudienceToDatabase(Audience au) {
-        SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
+    public void saveRaspAudienceToDatabase(Audience au, SQLiteOpenHelper sqLiteHelper) {
+        SQLiteDatabase db = sqLiteHelper.getWritableDatabase();
         ContentValues cv = new ContentValues();
         cv.put("file_name", au.getFileName());
         cv.put("cab_name", au.getNameOfClass());
