@@ -26,7 +26,7 @@ public class FilesDataBase extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase bd) {
         bd.execSQL("create table " + "TABLE_FILES" + " ("
                 + "file_load text,"
-                + "file_name text primary key,"
+                + "file_name text primary key on conflict replace,"
                 + "is_downloaded integer,"
                 + "is_delete integer"
                 + ");");

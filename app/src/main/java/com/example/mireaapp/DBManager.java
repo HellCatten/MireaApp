@@ -3,6 +3,7 @@ package com.example.mireaapp;
 import static java.sql.Types.NULL;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteAccessPermException;
 import android.database.sqlite.SQLiteDatabase;
@@ -24,8 +25,14 @@ public class DBManager implements Runnable {
 
     private ArrayList<String> listOfFiles;
     private ArrayList<String> listOfFilestoDelete;
+    //private SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
 
+    private Context context;
     private static File path;
+
+    public void setContext(Context context) {
+        this.context = context;
+    }
 
     public static File getPath() {
         return path;
@@ -43,20 +50,23 @@ public class DBManager implements Runnable {
 
         initializeFilesInDatabase();
 
+        SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
         for(int i = 0; i < listOfFiles.size(); i++ ) {
-            saveFileToDatabase(listOfFiles.get(i), listOfFilesToDownload.get(i));
-            Log.i("MIREA_APP_TAG", "Try save " + listOfFiles.get(i) + " " + listOfFilesToDownload.get(i));
+            saveFileToDatabase(listOfFiles.get(i), listOfFilesToDownload.get(i), db);
+            //Log.i("MIREA_APP_TAG", "Try save " + listOfFiles.get(i) + " " + listOfFilesToDownload.get(i));
         }
-
+        db.close();
         listOfFilestoDelete = loadAllFilestoDeleteFromDatabase();
 
-        deleteSchedule(listOfFilestoDelete);
+        //deleteSchedule(listOfFilestoDelete);
 
         deleteUnusedFilesFromDatabase();
 
         deleteFile(listOfFilestoDelete);
 
         saveAndLoadFilesTODatabase();
+
+
 
     }
 
@@ -70,18 +80,25 @@ public class DBManager implements Runnable {
 
     public void saveAndLoadFilesTODatabase() {
 
-        ArrayList<String> listOfFiles = loadListOfFileNamesUndownloadedFromDatabase();
-        this.listOfFiles = listOfFiles;
-        ArrayList<String> listOfFilestoDownload = loadListOfFileDownloadsUndownloadedFromDatabase();
-        this.listOfFilesToDownload = listOfFilestoDownload;
-        for (int i = 0; i < listOfFiles.size(); i++) {
-            Audience.downloadlistOfFiles(listOfFilestoDownload,listOfFiles, path);
+        ArrayList<Myfile> listOfFiles = loadListOfFileNamesUndownloadedFromDatabase();
+        //listOfFiles = listOfFiles;
+        ArrayList<String> listNamesOfFiles = new ArrayList<>();
+        ArrayList<String> listOfURL = new ArrayList<>();
+        for(Myfile f : listOfFiles) {
+            listNamesOfFiles.add(f.getFileName());
+            listOfURL.add(f.getURL());
         }
+
+        //listOfFilesToDownload = listOfFilestoDownload;
+
+        Audience.downloadlistOfFiles(listOfURL,listNamesOfFiles, path);
+
 
         changeDownloadFileInDatabase();
 
         Audience au = new Audience();
-        au.work(listOfFiles, path);
+        au.setContext(context);
+        au.work(listNamesOfFiles, path);
         HashMap<String, Audience> hashMap = au.getAudienceHashMap();
 
         saveHashMapSimpleAudienceTodatabase(hashMap);
@@ -89,48 +106,48 @@ public class DBManager implements Runnable {
 
     public void changeDownloadFileInDatabase() {
         SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
-        db.execSQL("UPDATE TABLE_FILES SET id_downloaded = 1", null);
+        db.execSQL("UPDATE TABLE_FILES SET is_downloaded = 1");
         db.close();
     }
 
-    public boolean saveFileToDatabase(String fileName, String loadName) {
+    public boolean saveFileToDatabase(String fileName, String loadName, SQLiteDatabase db) {
         //SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
         ArrayList<Integer> isDownloadedList = new ArrayList<>();
 
-            SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
-            Cursor dbCursor = db.rawQuery("select * from TABLE_FILES where file_name = '" + fileName + "'",null);
+        //SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
+        Cursor dbCursor = db.rawQuery("select * from TABLE_FILES where file_name = '" + fileName + "'",null);
             //String selection = "file_name = " + fileName;
         /*
             Cursor dbCursor = db.query("TABLE_FILES",
                     null, "file_name = ?", new String[]{fileName},
                     null, null, null);
 
-         */
-            if (dbCursor.moveToFirst()) {
-                do {
-                    int isDownloaded = dbCursor.getInt(dbCursor.getColumnIndexOrThrow("file_name"));
-                    //String fileDownload = dbCursor.getString(dbCursor.getColumnIndexOrThrow("file_load"));
-                    isDownloadedList.add(isDownloaded);
-                } while (dbCursor.moveToNext());
-            }
-            int isDownloaded;
-            dbCursor.close();
-            if (isDownloadedList.size()==1) {
-                isDownloaded = isDownloadedList.get(0);
-            } else {
-                isDownloaded = 0;
-            }
-            ContentValues cv = new ContentValues();
-            cv.put("file_name", fileName);
-            cv.put("is_downloaded", isDownloaded);
-            cv.put("is_delete", 1);
-            cv.put("file_load", loadName);
-            db.replace("TABLE_FILES", null, cv);
-            //db.execSQL("INSERT OR REPLACE INTO TABLE_FILES (file_name, is_downloaded, is_delete, file_load)" +
-              //      " VALUES (" + fileName + ", " + isDownloaded + ", 1," + loadName + ");");
-            cv.clear();
-            db.close();
-            Log.i("MIREA_APP_TAG", "added good file" + fileName);
+                    */
+        ContentValues cv = new ContentValues();
+        if (dbCursor.moveToFirst()) {
+            do {
+                if (dbCursor.isNull(3)) {
+                    cv.putNull("is_downloaded");
+                } else {
+                    int fileDownloaded = dbCursor.getInt(dbCursor.getColumnIndexOrThrow("is_downloaded"));
+                    cv.put("is_downloaded", fileDownloaded);
+                }
+            } while (dbCursor.moveToNext());
+        } else {
+            cv.putNull("is_downloaded");
+        }
+        dbCursor.close();
+        cv.put("file_name", fileName);
+        cv.put("is_delete", 1);
+        cv.put("file_load", loadName);
+        db.replace("TABLE_FILES", null, cv);
+        //db.execSQL("INSERT OR REPLACE INTO TABLE_FILES (file_name, is_downloaded, is_delete, file_load)" +
+        //      " VALUES (" + fileName + ", " + isDownloaded + ", 1," + loadName + ");");
+        cv.clear();
+        //db.close();
+        Log.i("MIREA_APP_TAG", "added good file" + fileName);
+
+
 
             /*
             SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
@@ -144,8 +161,12 @@ public class DBManager implements Runnable {
             cv.clear();
             db.close();
              */
+        /*
+        db.execSQL("INSERT OR REPLACE INTO TABLE_FILES (file_name, is_delete, file_load, is_downloaded)" +
+                " VALUES ( " + fileName + ", 1, " + loadName + ", " +
+                "(SELECT is_downloaded FROM TABLE_FILES WHERE file_name = " + fileName + "));");
 
-
+         */
         /*
         try {
             db.execSQL("INSERT OR REPLACE INTO TABLE_FILES (file_name, is_downloaded, is_delete, file_load)" +
@@ -171,15 +192,17 @@ public class DBManager implements Runnable {
         SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
         try {
             db.execSQL("UPDATE TABLE_FILES SET is_delete = 0", null);
-            db.close();
-        }catch (IllegalArgumentException iae) {
 
+        }catch (IllegalArgumentException iae) {
+            Log.i("MIREA_APP_TAG", "ERROR");
+        } finally {
+            db.close();
         }
     }
 
     public void deleteUnusedFilesFromDatabase() {
         SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
-        db.delete("TABLE_FILES","is_delete = 0", null);
+        db.delete("TABLE_FILES","is_delete = ?", new String[]{"0"});
         db.close();
     }
 
@@ -193,17 +216,19 @@ public class DBManager implements Runnable {
     }
 
 
-    public ArrayList<String> loadListOfFileNamesUndownloadedFromDatabase() {
-        ArrayList<String> files = new ArrayList<>();
+    public ArrayList<Myfile> loadListOfFileNamesUndownloadedFromDatabase() {
+        ArrayList<Myfile> files = new ArrayList<>();
         SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
-        Cursor dbCursor = db.query("TABLE_FILES",
-                null,"is_downloaded = NULL",null,
-                null,null,null);
+        Cursor dbCursor = db.rawQuery("select * from TABLE_FILES where is_downloaded is NULL",null);
+        //Cursor dbCursor = db.query("TABLE_FILES",
+        //        null,"is_downloaded = ?",new String[](NULL),
+        //        null,null,null);
         if (dbCursor.moveToFirst()) {
             do{
                 String fileName = dbCursor.getString(dbCursor.getColumnIndexOrThrow("file_name"));
                 String fileDownload = dbCursor.getString(dbCursor.getColumnIndexOrThrow("file_load"));
-                files.add(fileName);
+                Myfile file = new Myfile(fileName, fileDownload);
+                files.add(file);
             } while (dbCursor.moveToNext());
         }
         dbCursor.close();
@@ -211,23 +236,6 @@ public class DBManager implements Runnable {
         return files;
     }
 
-    public ArrayList<String> loadListOfFileDownloadsUndownloadedFromDatabase() {
-        ArrayList<String> files = new ArrayList<>();
-        SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
-        Cursor dbCursor = db.query("TABLE_FILES",
-                null,"is_downloaded = NULL",null,
-                null,null,null);
-        if (dbCursor.moveToFirst()) {
-            do{
-
-                String fileDownload = dbCursor.getString(dbCursor.getColumnIndexOrThrow("file_load"));
-                files.add(fileDownload);
-            } while (dbCursor.moveToNext());
-        }
-        dbCursor.close();
-        db.close();
-        return files;
-    }
 
     public ArrayList<String> loadAllFilestoDeleteFromDatabase() {
         ArrayList<String> files = new ArrayList<>();
@@ -265,20 +273,25 @@ public class DBManager implements Runnable {
         return rowId != -1;
     }
 
-    public boolean saveRaspAudienceToDatabase(Audience au) {
+    public void saveRaspAudienceToDatabase(Audience au) {
         SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
         ContentValues cv = new ContentValues();
         cv.put("file_name", au.getFileName());
         cv.put("cab_name", au.getNameOfClass());
         cv.put("building", au.getBuilding());
-        cv.put("campus", au.getCampus());
+        if (au.getCampus() == null) {
+            cv.putNull("campus");
+        } else {
+            cv.put("campus", au.getCampus());
+        }
+        //cv.put("campus", au.getCampus());
         cv.put("number_para", au.getNumOfClass());
         cv.put("day", au.getDay());
         cv.put("number_week", au.getWeek());
         long rowId = db.insert("TABLE_AU_SCHEDULE", null, cv);
         cv.clear();
         db.close();
-        return rowId != -1;
+        //return rowId != -1;
     }
 
     @Override
@@ -290,4 +303,22 @@ public class DBManager implements Runnable {
 
 
 
+}
+
+class Myfile {
+    private String fileName;
+    private String URL;
+
+    public Myfile(String fileName, String URL) {
+        this.fileName = fileName;
+        this.URL = URL;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public String getURL() {
+        return URL;
+    }
 }

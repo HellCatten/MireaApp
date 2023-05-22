@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
         this.dbManager = new DBManager(new FilesDataBase(this, "my_database.db", null, 1));
 
         this.dbManager.setPath(path);
+        dbManager.setContext(this);
         //dbManager.saveFilesToDatabase();
         Thread thread = new Thread(dbManager);
         thread.start();
@@ -80,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
         //Thread thread = new Thread(au);
         //thread.start();
         //fileDataBaseWorker();
-        thread.start();
+        //thread.start();
     }
 
     public void showCustomDialog() {

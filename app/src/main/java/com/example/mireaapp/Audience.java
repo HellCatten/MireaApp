@@ -31,7 +31,7 @@ import java.util.ArrayList;
 
 public class Audience implements Runnable {
 
-    private Context context;
+    private static Context context;
 
     public Context getContext() {
         return context;
@@ -44,7 +44,7 @@ public class Audience implements Runnable {
     private static String url = "https://www.mirea.ru/schedule/";
     private String name;
 
-    private static DBManager dbManager;
+    private static DBManager dbManager = new DBManager(new FilesDataBase(null, "my_database.db", null, 1));
     private String fileName;
 
     public String getFileName() {
@@ -310,6 +310,7 @@ public class Audience implements Runnable {
         for (int i = 0; i< listURL.size();i++) {
             String fileName = listOfNames.get(i);
             String url = listURL.get(i);
+            Log.i("MIREA_APP_TAG", "Download " + fileName);
             try {
                 downloadOneFile(url,fileName,path);
             } catch (IOException e) {
@@ -750,7 +751,7 @@ public class Audience implements Runnable {
         }
 
         for (Audience au : info) {
-            boolean i = dbManager.saveRaspAudienceToDatabase(au);
+            dbManager.saveRaspAudienceToDatabase(au);
             Log.i("MIREA_APP_TAG","SAVED  Неделя " + au.getWeek() + " Day: " + au.getDay() + " Пара: " + au.getNumOfClass()
                     + " Адрес " + au.getBuilding() + " Кабинет " + au.getNameOfClass() + " Корпус " + au.getCampus());
         }
@@ -790,7 +791,7 @@ public class Audience implements Runnable {
     @Override
     public void run() {
 
-        this.dbManager = new DBManager(new FilesDataBase(context, "my_database.db", null,1));
+        //this.dbManager = new DBManager(new FilesDataBase(context, "my_database.db", null,1));
 
         ArrayList<String> listOfLinksToDownload = getListOfFilesToDownload(url);
         Log.i("MIREA_APP_TAG", String.valueOf(listOfLinksToDownload));
