@@ -15,6 +15,7 @@ import android.util.Log;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 
 public class DBManager implements Runnable {
@@ -64,6 +65,8 @@ public class DBManager implements Runnable {
 
         deleteFile(listOfFilestoDelete);
 
+        deleteSchedule(listOfFilestoDelete);
+
         saveAndLoadFilesTODatabase();
 
 
@@ -112,18 +115,8 @@ public class DBManager implements Runnable {
     }
 
     public boolean saveFileToDatabase(String fileName, String loadName, SQLiteDatabase db) {
-        //SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
         ArrayList<Integer> isDownloadedList = new ArrayList<>();
-
-        //SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
         Cursor dbCursor = db.rawQuery("select * from TABLE_FILES where file_name = '" + fileName + "'",null);
-            //String selection = "file_name = " + fileName;
-        /*
-            Cursor dbCursor = db.query("TABLE_FILES",
-                    null, "file_name = ?", new String[]{fileName},
-                    null, null, null);
-
-                    */
         ContentValues cv = new ContentValues();
         if (dbCursor.moveToFirst()) {
             do {
@@ -142,50 +135,8 @@ public class DBManager implements Runnable {
         cv.put("is_delete", 1);
         cv.put("file_load", loadName);
         db.replace("TABLE_FILES", null, cv);
-        //db.execSQL("INSERT OR REPLACE INTO TABLE_FILES (file_name, is_downloaded, is_delete, file_load)" +
-        //      " VALUES (" + fileName + ", " + isDownloaded + ", 1," + loadName + ");");
         cv.clear();
-        //db.close();
         Log.i("MIREA_APP_TAG", "added good file" + fileName);
-
-
-
-            /*
-            SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
-            Log.i("MIREA_APP_TAG", "added bad File" + fileName);
-            ContentValues cv = new ContentValues();
-            cv.put("file_name", fileName);
-            cv.put("is_downloaded", NULL);
-            cv.put("is_delete", 1);
-            cv.put("file_load", loadName);
-            db.insertOrThrow("TABLE_FILES", null, cv);
-            cv.clear();
-            db.close();
-             */
-        /*
-        db.execSQL("INSERT OR REPLACE INTO TABLE_FILES (file_name, is_delete, file_load, is_downloaded)" +
-                " VALUES ( " + fileName + ", 1, " + loadName + ", " +
-                "(SELECT is_downloaded FROM TABLE_FILES WHERE file_name = " + fileName + "));");
-
-         */
-        /*
-        try {
-            db.execSQL("INSERT OR REPLACE INTO TABLE_FILES (file_name, is_downloaded, is_delete, file_load)" +
-                    " VALUES (" + fileName + ", " + "(SELECT is_downloaded FROM TABLE_FILES WHERE file_name = " + fileName + "), " +
-                    "1, " + loadName + ");");
-            db.close();
-        } catch (SQLiteException e) {
-            ContentValues cv = new ContentValues();
-            cv.put("file_name", fileName);
-            cv.put("is_downloaded", isDownloaded);
-            cv.put("is_delete",1);
-            cv.put("file_load", loadName);
-            long rowId = db.replace("TABLE_FILES", null, cv);
-            cv.clear();
-            db.close();
-        }
-         */
-
         return true;
     }
 
@@ -208,12 +159,18 @@ public class DBManager implements Runnable {
     }
 
     public void deleteSchedule(ArrayList<String> fileNames) {
-        for (String i : fileNames) {
-            SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
-            String where = "file_name = " + i;
-            db.delete("TABLE_AU_SCHEDULE", where,null);
-            db.close();
+        SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
+        String where = "";
+        for (int i = 0; i < fileNames.size(); i++) {
+            if (i + 1 == fileNames.size()) {
+                where += fileNames.get(i);
+            } else {
+                where += fileNames.get(i) + ", ";
+            }
         }
+        db.execSQL("DELETE FROM TABLE_AU_SCHEDULE WHERE file_name IN (" + where + ")");
+        db.close();
+
     }
 
 
@@ -241,9 +198,7 @@ public class DBManager implements Runnable {
     public ArrayList<String> loadAllFilestoDeleteFromDatabase() {
         ArrayList<String> files = new ArrayList<>();
         SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
-        Cursor dbCursor = db.query("TABLE_FILES",
-                null,"is_delete = 0",null,
-                null,null,null);
+        Cursor dbCursor = db.rawQuery("select * from TABLE_FILES where is_delete = 0", null);
         if (dbCursor.moveToFirst()) {
             do{
                 String fileName = dbCursor.getString(dbCursor.getColumnIndexOrThrow("file_name"));
@@ -258,6 +213,67 @@ public class DBManager implements Runnable {
     public void saveHashMapSimpleAudienceTodatabase(HashMap<String, Audience> hashMap) {
         for (HashMap.Entry<String, Audience> set : hashMap.entrySet()) {
             saveSimpleAudienceToDatabase(set.getValue());
+        }
+    }
+
+    public ArrayList<Audience> loadScheduleFromDatabase(ArrayList<String> numbers, ArrayList<String> buildings, String day, int weekNumber) {
+        if (numbers.isEmpty() || buildings.isEmpty()) {
+            return null;
+        } else {
+            SQLiteDatabase db = this.sqLiteHelper.getWritableDatabase();
+            ArrayList<Audience> ausFromFirstTable = new ArrayList<>();
+            ArrayList<Audience> aus = new ArrayList<>();
+            String whereNumbers = "";
+            for (int i = 0; i < numbers.size(); i++) {
+                if (i + 1 == numbers.size()) {
+                    whereNumbers += numbers.get(i);
+                } else {
+                    whereNumbers += numbers.get(i) + ", ";
+                }
+            }
+            String whereBuildings = "";
+            for (int i = 0; i < buildings.size(); i++) {
+                if (i + 1 == buildings.size()) {
+                    whereBuildings += "'" + buildings.get(i) + "'";
+                } else {
+                    whereBuildings += "'" + buildings.get(i) + "', ";
+                }
+            }
+
+
+
+            Cursor dbGetterCursor = db.rawQuery("select * from TABLE_AUDIENCES where building IN (" + whereBuildings + ")", null);
+
+            if (dbGetterCursor.moveToFirst()) {
+                do {
+                    String building = dbGetterCursor.getString(dbGetterCursor.getColumnIndexOrThrow("building"));
+                    String name = dbGetterCursor.getString(dbGetterCursor.getColumnIndexOrThrow("cab_name"));
+                    Audience au = new Audience();
+                    au.setBuilding(building);
+                    au.setNameOfClass(name);
+                    ausFromFirstTable.add(au);
+                } while (dbGetterCursor.moveToNext());
+            }
+            dbGetterCursor.close();
+            for (Audience au : ausFromFirstTable) {
+                for (String para : numbers) {
+                    Cursor dbCursor = db.rawQuery("select * from TABLE_AU_SCHEDULE where day = '" + day + "' and number_week = " + weekNumber + " and building = '" + au.getBuilding()
+                            + "' and cab_name = '" + au.getNameOfClass() + "' and number_para = '" + para + "'", null);
+                    if (dbCursor.getCount()==0) {
+                        Audience auf = new Audience();
+                        auf.setDay(day);
+                        auf.setWeek(weekNumber);
+                        auf.setBuilding(au.getBuilding());
+                        auf.setNameOfClass(au.getNameOfClass());
+                        auf.setNumOfClass(para);
+                        aus.add(auf);
+                    }
+                    dbCursor.close();
+                }
+            }
+            db.close();
+            Collections.sort(aus);
+            return aus;
         }
     }
 

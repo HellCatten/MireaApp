@@ -31,6 +31,7 @@ public class AudienceAdapter extends RecyclerView.Adapter<AudienceAdapter.ViewHo
         Audience au = aus.get(position);
         holder.nameView.setText(au.getNameOfClass());
         holder.buildingView.setText(au.getBuilding());
+        holder.numberOfClassView.setText(au.getNumOfClass());
     }
 
     @Override
@@ -43,10 +44,13 @@ public class AudienceAdapter extends RecyclerView.Adapter<AudienceAdapter.ViewHo
         public final TextView nameView;
         public final TextView buildingView;
 
+        public final TextView numberOfClassView;
+
         public ViewHolder(@NonNull View view) {
             super(view);
             nameView = view.findViewById(R.id.name);
             buildingView = view.findViewById(R.id.building);
+            numberOfClassView = view.findViewById(R.id.numberOfPara);
         }
     }
 

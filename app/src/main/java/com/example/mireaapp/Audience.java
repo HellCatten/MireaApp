@@ -30,7 +30,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 
-public class Audience implements Runnable {
+public class Audience implements Runnable, Comparable<Audience>{
 
     private Context context;
     private SQLiteOpenHelper sqLiteOpenHelper;
@@ -637,53 +637,53 @@ public class Audience implements Runnable {
         if (numOfClassesInDay == 7) {
             if (rowNum < 17) {
                 for (Audience au : info) {
-                    au.setDay("ПОНЕДЕЛЬНИК");
+                    au.setDay("понедельник");
                 }
             } else if (rowNum >= 17 && rowNum < 31) {
                 for (Audience au : info) {
-                    au.setDay("ВТОРНИК");
+                    au.setDay("вторник");
                 }
             } else if (rowNum >= 31 && rowNum < 45) {
                 for (Audience au : info) {
-                    au.setDay("СРЕДА");
+                    au.setDay("среда");
                 }
             } else if (rowNum >= 45 && rowNum < 59) {
                 for (Audience au : info) {
-                    au.setDay("ЧЕТВЕРГ");
+                    au.setDay("четверг");
                 }
             } else if (rowNum >= 59 && rowNum < 73) {
                 for (Audience au : info) {
-                    au.setDay("ПЯТНИЦА");
+                    au.setDay("пятница");
                 }
             } else if (rowNum >= 73 && rowNum < 86) {
                 for (Audience au : info) {
-                    au.setDay("СУББОТА");
+                    au.setDay("суббота");
                 }
             }
         } else if(numOfClassesInDay==8) {
             if (rowNum < 21) {
                 for (Audience au : info) {
-                    au.setDay("ПОНЕДЕЛЬНИК");
+                    au.setDay("понедельник");
                 }
             } else if (rowNum >= 21 && rowNum < 39) {
                 for (Audience au : info) {
-                    au.setDay("ВТОРНИК");
+                    au.setDay("вторник");
                 }
             } else if (rowNum >= 39 && rowNum < 57) {
                 for (Audience au : info) {
-                    au.setDay("СРЕДА");
+                    au.setDay("среда");
                 }
             } else if (rowNum >= 57 && rowNum < 75) {
                 for (Audience au : info) {
-                    au.setDay("ЧЕТВЕРГ");
+                    au.setDay("четверг");
                 }
             } else if (rowNum >= 75 && rowNum < 93) {
                 for (Audience au : info) {
-                    au.setDay("ПЯТНИЦА");
+                    au.setDay("пятница");
                 }
             } else if (rowNum >= 93 && rowNum < 104) {
                 for (Audience au : info) {
-                    au.setDay("СУББОТА");
+                    au.setDay("суббота");
                 }
             }
         }
@@ -816,4 +816,8 @@ public class Audience implements Runnable {
 
     }
 
+    @Override
+    public int compareTo(Audience audience) {
+        return getNameOfClass().compareTo(audience.getNameOfClass());
+    }
 }
