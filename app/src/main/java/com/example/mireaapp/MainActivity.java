@@ -1,34 +1,30 @@
 package com.example.mireaapp;
 
-import android.Manifest;
 import android.app.Dialog;
-import android.content.ContentValues;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.DialogInterface;
-import android.content.Intent;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
-import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.CalendarView;
 import android.widget.CheckBox;
-import android.widget.Switch;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.prolificinteractive.materialcalendarview.CalendarDay;
@@ -41,12 +37,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
 
-    private Dialog dialog;
 
     private static CheckBox checkBox1;
     private static CheckBox checkBox2;
@@ -62,16 +56,31 @@ public class MainActivity extends AppCompatActivity {
     private static CheckBox checkBoxC20;
     private static CheckBox checkBoxCG22;
 
+    private ArrayList<Audience> aus;
+
+    private Handler handler = new Handler(Looper.getMainLooper());
+
     private File path;
     private String day;
     private int weekNumber;
 
-    private ArrayList <String> numbers;
+    private ArrayList <String> checkNumbers;
     private ArrayList <String> buildings;
 
     private static Audience au = new Audience();
 
     private DBManager dbManager;
+
+    private MaterialCalendarView calendarView;
+
+    private Toolbar tb;
+    private ProgressBar pb;
+
+    private RecyclerView recyclerView;
+
+    private Dialog progressDialog;
+
+    private Thread thread;
 
 
     @Override
@@ -79,6 +88,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Context context = getApplicationContext();
+        pb = findViewById(R.id.progressBar);
+        pb.setVisibility(View.GONE);
         //this.dbManager = new DBManager(new FilesDataBase(this, "my_database.db", null, 1));
         //this.dbManager.setPath(path);
         /*
@@ -96,21 +107,60 @@ public class MainActivity extends AppCompatActivity {
         this.dbManager.setPath(path);
         dbManager.setContext(this);
         //dbManager.saveFilesToDatabase();
-        Thread thread = new Thread(dbManager);
+        thread = new Thread(dbManager);
         thread.start();
+
         au.setPath(path);
         au.setContext(context);
-        MaterialCalendarView calendarView = findViewById(R.id.calendarView);
+        calendarView = findViewById(R.id.calendarView);
         CalendarDay cd = CalendarDay.today();
+        updateDay(cd);
         calendarView.setSelectedDate(CalendarDay.today());
         Toolbar tb = findViewById(R.id.toolbar);
         setSupportActionBar(tb);
-        dialog = new Dialog(this);
+        //dialog = new Dialog(this);
         ActionBar ab = getSupportActionBar();
         if (ab != null) {
             ab.setTitle("Аудитории");
         }
         Log.i("MIREA_APP_TAG", String.valueOf(path));
+        //runSchedule();
+        Dialog pd = new Dialog(this);
+        pd.setContentView(R.layout.progress_dialog);
+        pd.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        pd.setCancelable(false);
+        pd.setCanceledOnTouchOutside(false);
+        TextView name = pd.findViewById(R.id.progress_status);
+        name.setText("Загрузка базы данных");
+        pd.show();
+        Thread threadWaitToLoadDatabase = new Thread(() -> {
+            /*
+            progressDialog = new Dialog(this);
+            progressDialog.setContentView(R.layout.progress_dialog);
+            progressDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            progressDialog.setCancelable(false);
+            progressDialog.setCanceledOnTouchOutside(false);
+            progressDialog.show();
+            TextView name = progressDialog.findViewById(R.id.progress_status);
+            name.setText("Загрузка базы данных");
+
+             */
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        //progressDialog.show();
+                        thread.join();
+                    }catch (InterruptedException ie) {
+
+                    } finally {
+                        pd.dismiss();
+                        Log.i("MIREA_APP_TAG", "is Loaded");
+                    }
+                }
+            });
+        });
+        threadWaitToLoadDatabase.start();
         calendarView.setOnDateChangedListener(new OnDateSelectedListener() {
 
             @Override
@@ -125,17 +175,34 @@ public class MainActivity extends AppCompatActivity {
                 calendar.set(date.getYear(), date.getMonth(), date.getDate());
                 Log.i("MIREA_APP_TAG", String.valueOf(calendar.get(Calendar.WEEK_OF_YEAR)));
                 int num = calendar.get(Calendar.WEEK_OF_YEAR);
-                if (num % 2 == 0 && ((num - 5 >= 1 || num - 5 <= 16) || (num >= 35 || num - 5 < 51))) {
+                if (((num-5) % 2) == 0 && ((num - 4 >= 1 || num - 4 <= 16) || (num >= 35 || num <= 51))) {
                     weekNumber = 2;
-                } else if ((num % 2 != 0 && ((num - 5 >= 1 || num - 5 <= 16) || (num >= 35 || num - 5 < 51)))) {
+                } else if ((num-5) % 2 != 0 && ((num - 4 >= 1 || num - 4 <= 16) || (num >= 35 || num - 5 <= 51))) {
                     weekNumber = 1;
                 }
-                loadShedule();
+                Log.i("MIREA_APP_TAG",String.valueOf(weekNumber));
+                runSchedule();
             }
         });
     }
 
-
+    public void updateDay(CalendarDay calendarDate) {
+        Log.i("MIREA_APP_TAG", "Day " + calendarDate);
+        Date date = calendarDate.getDate();
+        Log.i("MIREA_APP_TAG", "Day " + dayName(date));
+        day = dayName(date);
+        Calendar calendar = Calendar.getInstance();
+        calendar.setFirstDayOfWeek(6);
+        calendar.setMinimalDaysInFirstWeek(7);
+        calendar.set(date.getYear(), date.getMonth(), date.getDate());
+        Log.i("MIREA_APP_TAG", String.valueOf(calendar.get(Calendar.WEEK_OF_YEAR)));
+        int num = calendar.get(Calendar.WEEK_OF_YEAR);
+        if (((num-5) % 2) == 0 && ((num - 4 >= 1 || num - 4 <= 16) || (num >= 35 || num <= 51))) {
+            weekNumber = 2;
+        } else if ((num-5) % 2 != 0 && ((num - 4 >= 1 || num - 4 <= 16) || (num >= 35 || num - 5 <= 51))) {
+            weekNumber = 1;
+        }
+    }
 
     public String dayName (Date d) {
         DateFormat f = new SimpleDateFormat("EEEE");
@@ -147,81 +214,214 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void runSchedule() {
+        try {
+            aus.clear();
+        }catch (NullPointerException npe) {
+
+        }
+        progressDialog = new Dialog(this);
+        progressDialog.setContentView(R.layout.progress_dialog);
+        progressDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        progressDialog.setCancelable(false);
+        progressDialog.setCanceledOnTouchOutside(false);
+        progressDialog.show();
+        Thread t = new Thread(() -> {
+
+            aus = loadArrayListOfScheduleFromDatadase();
+
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if(aus != null) {
+                        updateRecyclerViewByArrayList(aus);
+                        progressDialog.dismiss();
+                    }
+                }
+            });
+        });
+        t.start();
+    }
+
+    public void saveSwitchState(String name, boolean state) {
+        SharedPreferences preferences = getSharedPreferences("my_app_prefs",MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putBoolean(name, state);
+        editor.apply();
+    }
+
+    public boolean getSwitchValuesFromPrefs (String name) {
+        SharedPreferences preferences = getSharedPreferences("my_app_prefs",MODE_PRIVATE);
+        boolean state = preferences.getBoolean(name, false);
+        return state;
+    }
+
     public void showCustomDialog() {
+        Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.settings_dialog_layout);
         dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        dialog.show();
+        //dialog.show();
         //setContentView(R.layout.settings_dialog_layout);
         checkBox1 = dialog.findViewById(R.id.checkBox1);
+        checkBox1.setChecked(getSwitchValuesFromPrefs(checkBox1.getText().toString()));
         checkBox2 = dialog.findViewById(R.id.checkBox2);
+        checkBox2.setChecked(getSwitchValuesFromPrefs(checkBox2.getText().toString()));
         checkBox3 = dialog.findViewById(R.id.checkBox3);
+        checkBox3.setChecked(getSwitchValuesFromPrefs(checkBox3.getText().toString()));
         checkBox4 = dialog.findViewById(R.id.checkBox4);
+        checkBox4.setChecked(getSwitchValuesFromPrefs(checkBox4.getText().toString()));
         checkBox5 = dialog.findViewById(R.id.checkBox5);
+        checkBox5.setChecked(getSwitchValuesFromPrefs(checkBox5.getText().toString()));
         checkBox6 = dialog.findViewById(R.id.checkBox6);
+        checkBox6.setChecked(getSwitchValuesFromPrefs(checkBox6.getText().toString()));
         checkBox7 = dialog.findViewById(R.id.checkBox7);
+        checkBox7.setChecked(getSwitchValuesFromPrefs(checkBox7.getText().toString()));
         checkBox8 = dialog.findViewById(R.id.checkBox8);
+        checkBox8.setChecked(getSwitchValuesFromPrefs(checkBox8.getText().toString()));
         checkBoxB78 = dialog.findViewById(R.id.checkBoxBuildingB78);
+        checkBoxB78.setChecked(getSwitchValuesFromPrefs(checkBoxB78.getText().toString()));
         checkBoxB86 = dialog.findViewById(R.id.checkBoxBuildingB86);
+        checkBoxB86.setChecked(getSwitchValuesFromPrefs(checkBoxB86.getText().toString()));
         checkBoxMP1 = dialog.findViewById(R.id.checkBoxBuildingMP1);
+        checkBoxMP1.setChecked(getSwitchValuesFromPrefs(checkBoxMP1.getText().toString()));
         checkBoxC20 = dialog.findViewById(R.id.checkBoxBuildingC20);
+        checkBoxC20.setChecked(getSwitchValuesFromPrefs(checkBoxC20.getText().toString()));
         checkBoxCG22 = dialog.findViewById(R.id.checkBoxBuildingCG22);
+        checkBoxCG22.setChecked(getSwitchValuesFromPrefs(checkBoxCG22.getText().toString()));
+        dialog.show();
 
         dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
             public void onDismiss(DialogInterface dialogInterface) {
-                numbers = new ArrayList<>();
+                ArrayList<String> numbers = new ArrayList<>();
                 buildings = new ArrayList<>();
                 if (checkBox1.isChecked()) {
                     numbers.add("1");
+                    saveSwitchState(checkBox1.getText().toString(),true);
+                } else {
+                    saveSwitchState(checkBox1.getText().toString(),false);
                 }
                 if (checkBox2.isChecked()) {
                     numbers.add("2");
+                    saveSwitchState(checkBox2.getText().toString(),true);
+                } else {
+                    saveSwitchState(checkBox2.getText().toString(),false);
                 }
                 if (checkBox3.isChecked()) {
                     numbers.add("3");
+                    saveSwitchState(checkBox3.getText().toString(),true);
+                } else {
+                    saveSwitchState(checkBox3.getText().toString(),false);
                 }
                 if (checkBox4.isChecked()) {
                     numbers.add("4");
+                    saveSwitchState(checkBox4.getText().toString(),true);
+                } else {
+                    saveSwitchState(checkBox4.getText().toString(),false);
                 }
                 if (checkBox5.isChecked()) {
                     numbers.add("5");
+                    saveSwitchState(checkBox5.getText().toString(),true);
+                } else {
+                    saveSwitchState(checkBox5.getText().toString(),false);
                 }
                 if (checkBox6.isChecked()) {
                     numbers.add("6");
+                    saveSwitchState(checkBox6.getText().toString(),true);
+                } else {
+                    saveSwitchState(checkBox6.getText().toString(),false);
                 }
                 if (checkBox7.isChecked()) {
                     numbers.add("7");
+                    saveSwitchState(checkBox7.getText().toString(),true);
+                } else {
+                    saveSwitchState(checkBox7.getText().toString(),false);
                 }
                 if (checkBox8.isChecked()) {
                     numbers.add("8");
+                    saveSwitchState(checkBox8.getText().toString(),true);
+                } else {
+                    saveSwitchState(checkBox8.getText().toString(),false);
                 }
                 if (checkBoxB78.isChecked()) {
                     buildings.add("В-78");
+                    saveSwitchState(checkBoxB78.getText().toString(),true);
+                } else {
+                    saveSwitchState(checkBoxB78.getText().toString(),false);
                 }
                 if (checkBoxB86.isChecked()) {
                     buildings.add("В-86");
+                    saveSwitchState(checkBoxB86.getText().toString(),true);
+                } else {
+                    saveSwitchState(checkBoxB86.getText().toString(),false);
                 }
                 if (checkBoxC20.isChecked()) {
                     buildings.add("С-20");
+                    saveSwitchState(checkBoxC20.getText().toString(),true);
+                } else {
+                    saveSwitchState(checkBoxC20.getText().toString(),false);
                 }
                 if (checkBoxMP1.isChecked()) {
                     buildings.add("МП-1");
+                    saveSwitchState(checkBoxMP1.getText().toString(),true);
+                } else {
+                    saveSwitchState(checkBoxMP1.getText().toString(),false);
                 }
                 if (checkBoxCG22.isChecked()) {
                     buildings.add("СГ-22");
+                    saveSwitchState(checkBoxCG22.getText().toString(),true);
+                } else {
+                    saveSwitchState(checkBoxCG22.getText().toString(),false);
                 }
                 Log.i("MIREA_APP_TAG", String.valueOf(numbers));
                 Log.i("MIREA_APP_TAG", String.valueOf(buildings));
-                loadShedule();
+                if (!numbers.equals(checkNumbers)) {
+                    checkNumbers = numbers;
+                    runSchedule();
+                }
             }
         });
     }
 
+    public void updateRecyclerViewByArrayList(ArrayList<Audience> auditories) {
+        try {
+
+            if (!checkNumbers.isEmpty() && !day.isEmpty() && !buildings.isEmpty()) {
+                recyclerView = findViewById(R.id.recyclerView);
+                //aus = dbManager.loadScheduleFromDatabase(numbers, buildings, day, weekNumber);
+                if (auditories != null) {
+                    AudienceAdapter adapter = new AudienceAdapter(aus);
+                    recyclerView.setLayoutManager(new LinearLayoutManager(this,
+                            LinearLayoutManager.VERTICAL, false));
+                    recyclerView.setAdapter(adapter);
+                }
+            }
+
+        }catch (NullPointerException npe) {
+            Toast.makeText(this, "Неправильный ввод параметров", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    public ArrayList<Audience> loadArrayListOfScheduleFromDatadase(){
+        try {
+            if (!checkNumbers.isEmpty() && !day.isEmpty() && !buildings.isEmpty()) {
+                ArrayList<Audience> aus = dbManager.loadScheduleFromDatabase(checkNumbers, buildings, day, weekNumber);
+                return aus;
+            } else {
+                progressDialog.dismiss();
+                return null;
+            }
+        }catch (NullPointerException npe) {
+            //Toast.makeText(this, "Неправильный ввод параметров", Toast.LENGTH_LONG).show();
+            progressDialog.dismiss();
+            return null;
+        }
+    }
     public void loadShedule() {
         try {
-            if (!numbers.isEmpty() && !day.isEmpty() && !buildings.isEmpty()) {
+            if (!checkNumbers.isEmpty() && !day.isEmpty() && !buildings.isEmpty()) {
                 RecyclerView rcView = findViewById(R.id.recyclerView);
-                ArrayList<Audience> aus = dbManager.loadScheduleFromDatabase(numbers, buildings, day, weekNumber);
+                aus = dbManager.loadScheduleFromDatabase(checkNumbers, buildings, day, weekNumber);
                 if (aus != null) {
                     AudienceAdapter adapter = new AudienceAdapter(aus);
                     rcView.setLayoutManager(new LinearLayoutManager(this,
