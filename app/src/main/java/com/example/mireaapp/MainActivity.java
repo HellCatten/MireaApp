@@ -7,8 +7,12 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.ViewPropertyAnimatorCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
@@ -22,7 +26,11 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.animation.DecelerateInterpolator;
+import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -74,22 +82,25 @@ public class MainActivity extends AppCompatActivity {
     private MaterialCalendarView calendarView;
 
     private Toolbar tb;
-    private ProgressBar pb;
-
     private RecyclerView recyclerView;
 
     private Dialog progressDialog;
 
-    private Thread thread;
+    private static Thread thread;
+    private boolean animationStarted = false;
 
+    public static Thread getThread() {
+        return thread;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setTheme(R.style.Theme_MireaApp_NoActionBar);
+        //getWindow().getDecorView().setSystemUiVisibility(
+        //        View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Context context = getApplicationContext();
-        pb = findViewById(R.id.progressBar);
-        pb.setVisibility(View.GONE);
         //this.dbManager = new DBManager(new FilesDataBase(this, "my_database.db", null, 1));
         //this.dbManager.setPath(path);
         /*
@@ -109,6 +120,22 @@ public class MainActivity extends AppCompatActivity {
         //dbManager.saveFilesToDatabase();
         thread = new Thread(dbManager);
         thread.start();
+        Dialog pd = new Dialog(this);
+        pd.setContentView(R.layout.progress_dialog);
+        pd.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        pd.setCancelable(false);
+        pd.setCanceledOnTouchOutside(false);
+        TextView name = pd.findViewById(R.id.progress_status);
+        name.setText("Загрузка базы данных");
+        pd.show();
+        try {
+            thread.join();
+        } catch (InterruptedException e) {
+            //throw new RuntimeException(e);
+            pd.dismiss();
+        }
+        pd.dismiss();
+        //setProgressDialog();
 
         au.setPath(path);
         au.setContext(context);
@@ -125,42 +152,10 @@ public class MainActivity extends AppCompatActivity {
         }
         Log.i("MIREA_APP_TAG", String.valueOf(path));
         //runSchedule();
-        Dialog pd = new Dialog(this);
-        pd.setContentView(R.layout.progress_dialog);
-        pd.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        pd.setCancelable(false);
-        pd.setCanceledOnTouchOutside(false);
-        TextView name = pd.findViewById(R.id.progress_status);
-        name.setText("Загрузка базы данных");
-        pd.show();
-        Thread threadWaitToLoadDatabase = new Thread(() -> {
-            /*
-            progressDialog = new Dialog(this);
-            progressDialog.setContentView(R.layout.progress_dialog);
-            progressDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            progressDialog.setCancelable(false);
-            progressDialog.setCanceledOnTouchOutside(false);
-            progressDialog.show();
-            TextView name = progressDialog.findViewById(R.id.progress_status);
-            name.setText("Загрузка базы данных");
 
-             */
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        //progressDialog.show();
-                        thread.join();
-                    }catch (InterruptedException ie) {
 
-                    } finally {
-                        pd.dismiss();
-                        Log.i("MIREA_APP_TAG", "is Loaded");
-                    }
-                }
-            });
-        });
-        threadWaitToLoadDatabase.start();
+
+        //threadWaitToLoadDatabase.start();
         calendarView.setOnDateChangedListener(new OnDateSelectedListener() {
 
             @Override
@@ -184,6 +179,38 @@ public class MainActivity extends AppCompatActivity {
                 runSchedule();
             }
         });
+    }
+
+
+
+    private void animate() {
+        ImageView logoImageView = (ImageView) findViewById(R.id.img_logo);
+        ViewGroup container = (ViewGroup) findViewById(R.id.container);
+
+        ViewCompat.animate(logoImageView)
+                .translationY(-250)
+                .setStartDelay(300)
+                .setDuration(1000).setInterpolator(
+                        new DecelerateInterpolator(1.2f)).start();
+
+        for (int i = 0; i < container.getChildCount(); i++) {
+            View v = container.getChildAt(i);
+            ViewPropertyAnimatorCompat viewAnimator;
+
+            if (!(v instanceof Button)) {
+                viewAnimator = ViewCompat.animate(v)
+                        .translationY(50).alpha(1)
+                        .setStartDelay((300 * i) + 500)
+                        .setDuration(1000);
+            } else {
+                viewAnimator = ViewCompat.animate(v)
+                        .scaleY(1).scaleX(1)
+                        .setStartDelay((300 * i) + 500)
+                        .setDuration(500);
+            }
+
+            viewAnimator.setInterpolator(new DecelerateInterpolator()).start();
+        }
     }
 
     public void updateDay(CalendarDay calendarDate) {

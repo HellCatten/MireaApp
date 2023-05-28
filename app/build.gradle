@@ -33,9 +33,10 @@ dependencies {
     //implementation group: 'org.apache.poi', name: 'poi-ooxml', version: '4.0.0'
     // https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml
     //
+    implementation "androidx.core:core-splashscreen:1.0.1"
     implementation 'javax.xml.stream:stax-api:1.0'
     implementation 'com.github.prolificinteractive:material-calendarview:1.6.0'
-
+    implementation 'androidx.work:work-runtime:2.8.1'
     implementation 'androidx.appcompat:appcompat:1.0.0'
     //implementation 'com.google.android.support:design:28.0.0-rc01'
     implementation 'com.android.support.constraint:constraint-layout:2.0.4'
