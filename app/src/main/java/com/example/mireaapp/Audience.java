@@ -776,6 +776,7 @@ public class Audience implements Runnable, Comparable<Audience>{
         if (fileName.contains("ekz")) {
         } else if (fileName.contains("zach")) {
         } else if (fileName.contains("gia")) {
+        } else if (fileName.contains("sessiya")){
         } else {
             try {
                 dataBaseFileCreator(path, fileName);
