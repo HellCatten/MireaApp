@@ -5,7 +5,7 @@
     <!-- Your product logo - 144dp color version of your app icon -->
     <item>
         <bitmap
-            android:src="@drawable/mirea_logo"
+            android:src="@drawable/loadlogo"
             android:gravity="center"/>
     </item>
 </layer-list>
