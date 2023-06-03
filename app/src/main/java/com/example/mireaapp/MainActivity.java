@@ -11,10 +11,11 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.ViewPropertyAnimatorCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.work.OneTimeWorkRequest;
-import androidx.work.WorkManager;
+//import androidx.work.OneTimeWorkRequest;
+//import androidx.work.WorkManager;
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -95,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        setTheme(R.style.Theme_MireaApp_NoActionBar);
+        //setTheme(R.style.Theme_MireaApp_NoActionBar);
         //getWindow().getDecorView().setSystemUiVisibility(
         //        View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
         super.onCreate(savedInstanceState);
@@ -114,12 +115,11 @@ public class MainActivity extends AppCompatActivity {
          */
         File path = context.getFilesDir();
         this.dbManager = new DBManager(new FilesDataBase(this, "my_database.db", null, 1));
-
         this.dbManager.setPath(path);
         dbManager.setContext(this);
         //dbManager.saveFilesToDatabase();
         thread = new Thread(dbManager);
-        thread.start();
+        //thread.start();
         Dialog pd = new Dialog(this);
         pd.setContentView(R.layout.progress_dialog);
         pd.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
@@ -128,12 +128,6 @@ public class MainActivity extends AppCompatActivity {
         TextView name = pd.findViewById(R.id.progress_status);
         name.setText("Загрузка базы данных");
         pd.show();
-        try {
-            thread.join();
-        } catch (InterruptedException e) {
-            //throw new RuntimeException(e);
-            pd.dismiss();
-        }
         pd.dismiss();
         //setProgressDialog();
 
@@ -269,7 +263,6 @@ public class MainActivity extends AppCompatActivity {
         });
         t.start();
     }
-
     public void saveSwitchState(String name, boolean state) {
         SharedPreferences preferences = getSharedPreferences("my_app_prefs",MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();

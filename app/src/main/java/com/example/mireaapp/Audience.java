@@ -746,11 +746,6 @@ public class Audience implements Runnable, Comparable<Audience>{
 
 
 
-        for (Audience au: info) {
-            Log.i("MIREA_APP_TAG"," Неделя " + au.getWeek() + " Day: " + au.getDay() + " Пара: " + au.getNumOfClass()
-                     + " Группа "+ au.getGroup() + " Адрес " + au.getBuilding() + " Кабинет " + au.getNameOfClass());
-        }
-
         for(Audience au: info) {
             String key = au.getBuilding()+au.getNameOfClass();
             audienceHashMap.put(key, au);
@@ -776,12 +771,14 @@ public class Audience implements Runnable, Comparable<Audience>{
         if (fileName.contains("ekz")) {
         } else if (fileName.contains("zach")) {
         } else if (fileName.contains("gia")) {
-        } else if (fileName.contains("sessiya")){
-        } else {
+        } else if (fileName.contains("sessi")){
+        } else if (fileName.contains("letne")) {
+        } else if (fileName.contains("zimn")) {
+        }else {
             try {
                 dataBaseFileCreator(path, fileName);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+
             }
         }
 

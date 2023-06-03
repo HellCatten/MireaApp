@@ -311,6 +311,11 @@ public class DBManager implements Runnable {
         //return rowId != -1;
     }
 
+    public void prerun() {
+        listOfFilesToDownload = Audience.getListOfFilesToDownload();
+        listOfFiles = Audience.getListOfNamesFromListOfLinks(listOfFilesToDownload);
+        saveFilesToDatabase();
+    }
     @Override
     public void run() {
         listOfFilesToDownload = Audience.getListOfFilesToDownload();
